@@ -1,9 +1,22 @@
+////////////////
+////////////////////programme incomplet pour le moment 
 #include <getopt.h>
 #include <stdio.h>
 #include <sys/sysinfo.h>
 #include <stdlib.h>
 #include <stdbool.h>
 #include <stdio.h>
+
+typedef enum {
+	DRY_RUN,
+	REMOTE_CONF,
+	CONNECTION_TYPE,
+	PORT,
+	LOGIN,
+	REMOTE_SERV,
+	USERNAME,
+	PASSWORD
+}
 
 void help(char* nom){
 	printf("Usage %s [Options]\n\n", nom);
@@ -18,6 +31,7 @@ void help(char* nom){
 	printf("--password ou -p	spécifie le mot de passe à utiliser pour la connexion\n\n");
 	printf("--all ou -a		spécifie au programme de collecter à la fois la liste des processus sur la machine local et les machines distantes.\n		S'utilise uniquement si l'option -c ou -s est utilisé.\n\n");
 }
+
 int main(int argc, char *argv[]) {
 	int opt = 0;
 	struct option my_opts[] = {
@@ -28,23 +42,25 @@ int main(int argc, char *argv[]) {
 		{.name="port",.has_arg=1,.flag=0,.val='P'},
  		{.name="login",.has_arg=1,.flag=0,.val='l'},
  		{.name="remote-server",.has_arg=1,.flag=0,.val='s'},
-    {.name="username",.has_arg=1,.flag=0,.val='u'},
+		{.name="username",.has_arg=1,.flag=0,.val='u'},
  		{.name="password",.has_arg=1,.flag=0,.val='p'},
  		{.name="all",.has_arg=1,.flag=0,.val='a'}, // faut utiliser avc -c et -s
 		{.name=0,.has_arg=0,.flag=0,.val=0}, // last element must be zero
 	};
-	char* source = 0;
-	char* temp_directory = 0;
-	char* outf = 0;
-	bool verbose = 0;
-	while((opt = getopt_long(argc, argv, "h", my_opts, 0)) != -1) {
+	bool dry_run = 0;// le drapeau du dry run
+	char* config = "";
+	while((opt = getopt_long(argc, argv, "hdc:", my_opts, 0)) != -1) {
 		switch (opt) {
 			case 'h':
 				help(argv[0]);
 			       return 0;
 			case 'd'://dry run
+				printf("mode dry run activé.\n");
+				dry_run = true;
 				break;
 			case 'c'://remote config
+				printf("fichier config est %s\n", optarg);
+				config = optarg; 
 				break;
 			case 't'://connection type
 				break;
