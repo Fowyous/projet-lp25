@@ -6,17 +6,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <stdio.h>
-
-typedef enum {
-	DRY_RUN,
-	REMOTE_CONF,
-	CONNECTION_TYPE,
-	PORT,
-	LOGIN,
-	REMOTE_SERV,
-	USERNAME,
-	PASSWORD
-}
+#include "main.h"
 
 void help(char* nom){
 	printf("Usage %s [Options]\n\n", nom);
