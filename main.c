@@ -6,10 +6,11 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <stdio.h>
+#include <string.h>
 #include "main.h"
 
 void help(char* nom){
-	printf("Usage %s [Options]\n\n", nom);
+	printf("Usage %s [Options][argument]\n\n", nom);
 	printf("--help ou -h		afficher ce message et sortir\n\n");
 	printf("--dry-run		test l'accès à la liste des processus sur la machine locale et/ou distante sans les afficher\n\n");
 	printf("--remote-config ou -c	spécifie le chemin vers le fichier de configuration contenant les informations de connexion\n			sur les machines distantes\n\n");
@@ -37,35 +38,68 @@ int main(int argc, char *argv[]) {
  		{.name="all",.has_arg=1,.flag=0,.val='a'}, // faut utiliser avc -c et -s
 		{.name=0,.has_arg=0,.flag=0,.val=0}, // last element must be zero
 	};
-	bool dry_run = 0;// le drapeau du dry run
-	char* config = "";
-	while((opt = getopt_long(argc, argv, "hdc:", my_opts, 0)) != -1) {
+
+	//initier des parametres par défaut cette liste va contenir tout les parametres necessaire
+	//pour l'utiliser il faut faire param[nom du parametre].parameter_value.type
+	//par example pour acceder a la valeure du dry run il faut faire params[DRY_RUN].parameter_value.flag_param
+	parameter_t params[] = {
+		{.parameter_type=DRY_RUN, .parameter_value.flag_param=false},
+                {.parameter_type=REMOTE_CONF, .parameter_value.str_param = ""},
+                {.parameter_type=CONNECTION_TYPE, .parameter_value.connection_param=UNDEFINED},//je ne veux pas mettre SSH ou TELNET comme ca je peut distinguer si la personne a mis une valeure ou pas
+                {.parameter_type=PORT, .parameter_value.int_param=-1},
+                {.parameter_type=LOGIN, .parameter_value.str_param=""},
+                {.parameter_type=REMOTE_SERV, .parameter_value.str_param=""},
+                {.parameter_type=USERNAME, .parameter_value.str_param=""},
+                {.parameter_type=PASSWORD, .parameter_value.str_param=""},
+		{.parameter_type=ALL, .parameter_value.flag_param=false}
+	};
+	while((opt = getopt_long(argc, argv, "hdc:t:P:l:s:u:p:a", my_opts, 0)) != -1) {
 		switch (opt) {
 			case 'h':
 				help(argv[0]);
-			       return 0;
+			      return 0;
 			case 'd'://dry run
 				printf("mode dry run activé.\n");
-				dry_run = true;
+				params[DRY_RUN].parameter_value.flag_param = true;
 				break;
 			case 'c'://remote config
 				printf("fichier config est %s\n", optarg);
-				config = optarg; 
+				strncpy(params[REMOTE_CONF].parameter_value.str_param, optarg, STR_MAX - 1);
 				break;
 			case 't'://connection type
+				if (!strcasecmp(optarg,"SSH")) {
+					params[CONNECTION_TYPE].parameter_value.connection_param = SSH;
+				}
+				else if (!strcasecmp(optarg, "TELNET")) {
+					params[CONNECTION_TYPE].parameter_value.connection_param = TELNET;
+				}
+				else{
+					printf("erreure dans la saisie de la connection type seulement l'option SSH ou TELNET est autorisée\n");
+					help(argv[0]);
+				}
 				break;
 			case 'P'://port
+				if ( atoi(optarg)<0 || atoi(optarg) > 65535){
+					printf("argument du port est requis et doit être un entier entre 0 et 65535\n");
+					help(argv[0]);//ca quitte automatiquement apres d'afficher l'aide
+				}
+				params[PORT].parameter_value.int_param = atoi(optarg);
 				break;
-      case 'l': //login
-        break;
-      case 's': //remote-server
-        break;
-      case 'u': //username
-        break;
-      case 'p': //password
-        break;
-      case 'a': //all
-        break;
+			case 'l': //login
+				params[LOGIN].parameter_value.int_param = atoi(optarg);
+        			break;
+		     case 's': //remote-server
+				strncpy(params[REMOTE_SERV].parameter_value.str_param, optarg, STR_MAX - 1);
+			       break;
+			case 'u': //username
+				strncpy(params[USERNAME].parameter_value.str_param, optarg, STR_MAX - 1);
+				break;
+			case 'p': //password
+				strncpy(params[PASSWORD].parameter_value.str_param, optarg, STR_MAX - 1);
+				break;
+			case 'a': //all
+				params[ALL].parameter_value.flag_param = true;
+				break;
 		}
 	}
 	return 0;
