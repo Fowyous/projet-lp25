@@ -77,24 +77,24 @@ void info_processus(pid_t pid) {
 
     long utime, stime, starttime;
     long clock_ticks = sysconf(_SC_CLK_TCK);
-    long uptime;
+    long uptime = 0;
 
     FILE *uptime_file = fopen("/proc/uptime", "r");
-    fscanf(uptime_file, "%ld", &uptime);
-    fclose(uptime_file);
+    if (uptime_file) {
+        fscanf(uptime_file, "%ld", &uptime);
+        fclose(uptime_file);
+    }
 
     snprintf(path, sizeof(path), "/proc/%d/stat", pid);
     file = fopen(path, "r");
 
     if (file) {
-        int dummy;
+        int pid_stat;
         char comm[64], state;
 
         fscanf(file,
-               "%d %s %c %d %d %d %d %d %lu %lu %lu %lu %ld %ld %ld",
-               &dummy, comm, &state,
-               &dummy, &dummy, &dummy, &dummy, &dummy,
-               &dummy, &dummy, &dummy, &dummy,
+               "%d %s %c %*d %*d %*d %*d %*d %*u %*u %*u %*u %ld %ld %*d %*d %*d %*d %*d %ld",
+               &pid_stat, comm, &state,
                &utime, &stime, &starttime);
 
         fclose(file);
@@ -158,20 +158,41 @@ void redemarrer_processus(pid_t pid) {
 }
 
 // ---------------------------------------------------------------
-// 4. MAIN DE DÉMONSTRATION
+// 4. MENU PRINCIPAL
 // ---------------------------------------------------------------
 
 int main() {
-    afficher_processus();
+    int choix;
+    pid_t pid;
 
-    printf("\n\n--- Test informations processus PID 1 ---\n");
-    info_processus(1);
+    do {
+        printf("\n===== GESTIONNAIRE DE PROCESSUS =====\n");
+        printf("1. Afficher tous les processus\n");
+        printf("2. Infos sur un processus\n");
+        printf("3. Mettre en pause un processus\n");
+        printf("4. Reprendre un processus\n");
+        printf("5. Arrêter un processus\n");
+        printf("6. Redémarrer un processus\n");
+        printf("0. Quitter\n");
+        printf("Choix : ");
+        scanf("%d", &choix);
 
-    // Exemple d'interactions :
-    // pause_processus(1234);
-    // reprise_processus(1234);
-    // arret_processus(1234);
-    // redemarrer_processus(1234);
+        if (choix != 1 && choix != 0) {
+            printf("Entrez le PID : ");
+            scanf("%d", &pid);
+        }
+
+        switch (choix) {
+            case 1: afficher_processus(); break;
+            case 2: info_processus(pid); break;
+            case 3: pause_processus(pid); break;
+            case 4: reprise_processus(pid); break;
+            case 5: arret_processus(pid); break;
+            case 6: redemarrer_processus(pid); break;
+        }
+
+    } while (choix != 0);
 
     return 0;
 }
+
