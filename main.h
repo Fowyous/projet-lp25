@@ -1,4 +1,11 @@
+#ifndef MAIN_H
+#define MAIN_H
+
 #define STR_MAX 1024 // le maximum de charactéres qu'on autorise pour un str
+#include <stdlib.h>
+#include <stdbool.h>
+#include <stdio.h>
+#include <string.h>
 typedef enum {
 	DRY_RUN,
 	REMOTE_CONF,
@@ -27,3 +34,12 @@ typedef struct {
 	parameter_id_t parameter_type;
 	data_wrapper_t parameter_value;
 }parameter_t;
+
+#endif
+
+
+
+
+
+
+
