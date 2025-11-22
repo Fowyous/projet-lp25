@@ -1,13 +1,4 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <dirent.h>
-#include <ctype.h>
-#include <sys/stat.h>
-#include <pwd.h>
-#include <unistd.h>
-#include <signal.h>
-
+#include "process.h"
 // ---------------------------------------------------------------
 // 1. AFFICHER LA LISTE DYNAMIQUE DES PROCESSUS
 // ---------------------------------------------------------------
