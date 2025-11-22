@@ -152,37 +152,37 @@ void redemarrer_processus(pid_t pid) {
 // 4. MENU PRINCIPAL
 // ---------------------------------------------------------------
 
-int main() {
-    int choix;
-    pid_t pid;
+// int main() {
+//     int choix;
+//     pid_t pid;
 
-    do {
-        printf("\n===== GESTIONNAIRE DE PROCESSUS =====\n");
-        printf("1. Afficher tous les processus\n");
-        printf("2. Infos sur un processus\n");
-        printf("3. Mettre en pause un processus\n");
-        printf("4. Reprendre un processus\n");
-        printf("5. Arrêter un processus\n");
-        printf("6. Redémarrer un processus\n");
-        printf("0. Quitter\n");
-        printf("Choix : ");
-        scanf("%d", &choix);
+//     do {
+//         printf("\n===== GESTIONNAIRE DE PROCESSUS =====\n");
+//         printf("1. Afficher tous les processus\n");
+//         printf("2. Infos sur un processus\n");
+//         printf("3. Mettre en pause un processus\n");
+//         printf("4. Reprendre un processus\n");
+//         printf("5. Arrêter un processus\n");
+//         printf("6. Redémarrer un processus\n");
+//         printf("0. Quitter\n");
+//         printf("Choix : ");
+//         scanf("%d", &choix);
 
-        if (choix != 1 && choix != 0) {
-            printf("Entrez le PID : ");
-            scanf("%d", &pid);
-        }
+//         if (choix != 1 && choix != 0) {
+//             printf("Entrez le PID : ");
+//             scanf("%d", &pid);
+//         }
 
-        switch (choix) {
-            case 1: afficher_processus(); break;
-            case 2: info_processus(pid); break;
-            case 3: pause_processus(pid); break;
-            case 4: reprise_processus(pid); break;
-            case 5: arret_processus(pid); break;
-            case 6: redemarrer_processus(pid); break;
-        }
+//         switch (choix) {
+//             case 1: afficher_processus(); break;
+//             case 2: info_processus(pid); break;
+//             case 3: pause_processus(pid); break;
+//             case 4: reprise_processus(pid); break;
+//             case 5: arret_processus(pid); break;
+//             case 6: redemarrer_processus(pid); break;
+//         }
 
-    } while (choix != 0);
+//     } while (choix != 0);
 
-    return 0;
-}
+//     return 0;
+// }
