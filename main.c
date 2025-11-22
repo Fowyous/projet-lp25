@@ -48,18 +48,21 @@ int main(int argc, char *argv[]) {
                 {.parameter_type=PASSWORD, .parameter_value.str_param=""},
 		{.parameter_type=ALL, .parameter_value.flag_param=false}
 	};
+	int nb_options = 0;
 	while((opt = getopt_long(argc, argv, "hdc:t:P:l:s:u:p:a", my_opts, 0)) != -1) {
 		switch (opt) {
 			case 'h':
 				help(argv[0]);
-			      return 0;
+			     return 0;
 			case 'd'://dry run
 				printf("mode dry run activé.\n");
 				params[DRY_RUN].parameter_value.flag_param = true;
+				nb_options +=1;
 				break;
 			case 'c'://remote config
 				printf("fichier config est %s\n", optarg);
 				strncpy(params[REMOTE_CONF].parameter_value.str_param, optarg, STR_MAX - 1);
+				nb_options +=1;
 				break;
 			case 't'://connection type
 				if (!strcasecmp(optarg,"SSH")) {
@@ -72,6 +75,7 @@ int main(int argc, char *argv[]) {
 					printf("erreure dans la saisie de la connection type seulement l'option SSH ou TELNET est autorisée\n");
 					help(argv[0]);
 				}
+				nb_options += 1;
 				break;
 			case 'P'://port
 				if ( atoi(optarg)<0 || atoi(optarg) > 65535){
@@ -79,23 +83,40 @@ int main(int argc, char *argv[]) {
 					help(argv[0]);//ca quitte automatiquement apres d'afficher l'aide
 				}
 				params[PORT].parameter_value.int_param = atoi(optarg);
+				nb_options += 1;
 				break;
 			case 'l': //login
 				params[LOGIN].parameter_value.int_param = atoi(optarg);
+				nb_options += 1;
         			break;
-		     case 's': //remote-server
+		    case 's': //remote-server
 				strncpy(params[REMOTE_SERV].parameter_value.str_param, optarg, STR_MAX - 1);
-			       break;
+				nb_options += 1;
+			      break;
 			case 'u': //username
 				strncpy(params[USERNAME].parameter_value.str_param, optarg, STR_MAX - 1);
+				nb_options +=1;
 				break;
 			case 'p': //password
 				strncpy(params[PASSWORD].parameter_value.str_param, optarg, STR_MAX - 1);
+				nb_options +=1;
 				break;
 			case 'a': //all
 				params[ALL].parameter_value.flag_param = true;
+				nb_options += 1;
 				break;
 		}
+	}
+	if (nb_options == 0){
+		//a faire
+
+		/////Lorsqu'aucune option n'est spécifiée,
+		///// alors le programme affiche uniquement les processus de la machine locale 
+		/////(la machine sur laquelle le programme est exécuté).
+	}
+	if (params[REMOTE_SERV].parameter_value.str_param != ""){//quand and remote server est spécifié
+		//a faire
+		//Si les options -u et -p ne sont pas specifiés dans la commande, alors il faudra les demandé interactivement lors de l'exécution.
 	}
 	return 0;
 }
