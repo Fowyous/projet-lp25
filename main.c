@@ -1,12 +1,7 @@
 ////////////////
 ////////////////////programme incomplet pour le moment 
 #include <getopt.h>
-#include <stdio.h>
 #include <sys/sysinfo.h>
-#include <stdlib.h>
-#include <stdbool.h>
-#include <stdio.h>
-#include <string.h>
 #include "main.h"
 
 void help(char* nom){
