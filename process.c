@@ -1,4 +1,15 @@
 #include "process.h"
+typedef struct {
+    int pid;
+    int ppid;
+    int gid;
+    char user[64];
+    char name[128];
+    char state;
+    double cpu_percent;
+    double mem_percent;
+    double uptime_seconds;
+} proc_info_t;
 // ---------------------------------------------------------------
 // 1. AFFICHER LA LISTE DYNAMIQUE DES PROCESSUS
 // ---------------------------------------------------------------
@@ -27,75 +38,116 @@ void afficher_processus() {
 // 2. AFFICHER LES INFORMATIONS D’UN PROCESSUS
 // ---------------------------------------------------------------
 
-void info_processus(pid_t pid) {
+proc_info_t get_process_info(pid_t pid) {
+    proc_info_t info;
+    memset(&info, 0, sizeof(info));
+    info.pid = pid;
+
     char path[256], buffer[256];
     FILE *file;
 
-    printf("\n--- Informations sur le processus %d ---\n", pid);
-
-    // --------- IDENTITÉ UTILISATEUR ---------
+    //-------------------------------------
+    // 1. USER / UID / GID
+    //-------------------------------------
     struct stat st;
     snprintf(path, sizeof(path), "/proc/%d", pid);
 
     if (stat(path, &st) == -1) {
         perror("PID introuvable");
-        return;
+        info.pid = -1;
+        return info;
     }
 
     struct passwd *pw = getpwuid(st.st_uid);
-    printf("Utilisateur : %s\n", pw ? pw->pw_name : "Inconnu");
+    snprintf(info.user, sizeof(info.user), "%s", pw ? pw->pw_name : "Inconnu");
+    info.gid = st.st_gid;
 
-    // --------- NOM DU PROCESSUS ---------
+    //-------------------------------------
+    // 2. Nom du processus
+    //-------------------------------------
     snprintf(path, sizeof(path), "/proc/%d/comm", pid);
     if ((file = fopen(path, "r"))) {
-        fgets(buffer, sizeof(buffer), file);
-        printf("Nom : %s", buffer);
+        fgets(info.name, sizeof(info.name), file);
+        info.name[strcspn(info.name, "\n")] = 0;  // enlever le \n
         fclose(file);
     }
 
-    // --------- MÉMOIRE ---------
-    snprintf(path, sizeof(path), "/proc/%d/status", pid);
-    if ((file = fopen(path, "r"))) {
-        while (fgets(buffer, sizeof(buffer), file)) {
-            if (strncmp(buffer, "VmRSS:", 6) == 0) {
-                printf("Mémoire utilisée : %s", buffer + 8);
-            }
-        }
-        fclose(file);
-    }
-
-    // --------- CPU + TEMPS D'EXÉCUTION ---------
+    //-------------------------------------
+    // 3. Lecture du stat pour CPU, état, PPID, etc.
+    //-------------------------------------
 
     long utime, stime, starttime;
+    long vsize = 0;
+    long rss = 0;
     long clock_ticks = sysconf(_SC_CLK_TCK);
-    long uptime = 0;
-
-    FILE *uptime_file = fopen("/proc/uptime", "r");
-    if (uptime_file) {
-        fscanf(uptime_file, "%ld", &uptime);
-        fclose(uptime_file);
-    }
 
     snprintf(path, sizeof(path), "/proc/%d/stat", pid);
     file = fopen(path, "r");
 
     if (file) {
-        int pid_stat;
-        char comm[64], state;
+        /*
+            Format simplifié :
+            1 = pid
+            2 = comm (entre parenthèses)
+            3 = state
+            4 = ppid
+            ...
+            14 = utime
+            15 = stime
+            22 = starttime
+            24 = vsize
+            25 = rss
+        */
+        int dummy_pid, ppid;
+        char comm[128], state;
 
         fscanf(file,
-               "%d %s %c %*d %*d %*d %*d %*d %*u %*u %*u %*u %ld %ld %*d %*d %*d %*d %*d %ld",
-               &pid_stat, comm, &state,
-               &utime, &stime, &starttime);
+            "%d %s %c %d "
+            "%*d %*d %*d %*d %*u %*u %*u %*u "
+            "%ld %ld %*d %*d %*d %*d %*d %ld %ld %ld",
+            &dummy_pid, comm, &state, &ppid,
+            &utime, &stime, &starttime, &vsize, &rss
+        );
 
         fclose(file);
 
-        double total_time = (utime + stime) / (double)clock_ticks;
-        double seconds = uptime - (starttime / clock_ticks);
+        info.state = state;
+        info.ppid = ppid;
 
-        printf("Temps CPU : %.2f sec\n", total_time);
-        printf("Temps d'exécution : %.2f sec\n", seconds);
+        // CPU %
+        double total_time = (utime + stime) / (double)clock_ticks;
+
+        double uptime_system = 0;
+        FILE *upt = fopen("/proc/uptime", "r");
+        if (upt) {
+            fscanf(upt, "%lf", &uptime_system);
+            fclose(upt);
+        }
+
+        double seconds = uptime_system - (starttime / clock_ticks);
+        info.uptime_seconds = seconds;
+
+        if (seconds > 0)
+            info.cpu_percent = 100.0 * (total_time / seconds);
     }
+
+    //-------------------------------------
+    // 4. Mémoire % (VmRSS)
+    //-------------------------------------
+    long mem_total = 0;
+    file = fopen("/proc/meminfo", "r");
+    if (file) {
+        while (fgets(buffer, sizeof(buffer), file)) {
+            if (sscanf(buffer, "MemTotal: %ld kB", &mem_total) == 1)
+                break;
+        }
+        fclose(file);
+    }
+
+    if (mem_total > 0)
+        info.mem_percent = 100.0 * ((rss * 4) / (double)mem_total); // rss*4 = kB
+
+    return info;
 }
 
 // ---------------------------------------------------------------
