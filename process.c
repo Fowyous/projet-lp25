@@ -1,15 +1,5 @@
 #include "process.h"
-typedef struct {
-    int pid;
-    int ppid;
-    int gid;
-    char user[64];
-    char name[128];
-    char state;
-    double cpu_percent;
-    double mem_percent;
-    double uptime_seconds;
-} proc_info_t;
+
 // ---------------------------------------------------------------
 // 1. AFFICHER LA LISTE DYNAMIQUE DES PROCESSUS
 // ---------------------------------------------------------------

@@ -8,8 +8,8 @@
 #include <unistd.h>
 #include <sys/stat.h>
 #include <pwd.h>
+#include <signal.h>
 
-#include <unistd.h>
 typedef struct {
     int pid;
     int ppid;
