@@ -10,11 +10,11 @@ BIN_DIR = bin
 OBJ_DIR = obj
 
 # Target executable name
-TARGET = $(BIN_DIR)/my_program
+TARGET = $(BIN_DIR)/main
 
 # fichiers sources
-#SRCS = $(wildcard $(SRC_DIR)/*.c) #mettre tout les .c dans le dossier 
-SRCS = main.c process.c ui.c
+#SRCS = $(wildcard $(SRC_DIR)/*.c) #mettre tout les .c dans la variable
+SRCS = main.c process.c ui.c #utiliser seulement ces fichiers .c
 # Object files
 OBJS = $(patsubst $(SRC_DIR)/%.c, $(OBJ_DIR)/%.o, $(SRCS))
 
@@ -39,7 +39,7 @@ $(OBJ_DIR):
 
 # Clean target
 clean:
-	rm -rf $(OBJ_DIR) $(BIN_DIR)/$(TARGET)
+	rm -rf $(OBJ_DIR) $(TARGET)
 
 # Phony targets
 .PHONY: all clean
