@@ -1,11 +1,14 @@
-//¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_//
-//_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_// include //¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\\
-//¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_//
-
+//¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_//
+//_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_// include //¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\\
+//¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_//
 
 #include <stdio.h>
 #include <unistd.h>
-#include <conio.h>
+#include <termios.h>
+#include <fcntl.h>
+#include <pthread.h>
+#include <string.h>
+#include <stdlib.h>
 
 #define RESET   "\033[0m"
 #define YELLOW  "\033[33m"
@@ -72,33 +75,22 @@ int fenetre_aide() {
 
 
 
-//¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_//
-//_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_// complement fonc //¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\\
-//¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_//
+//¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_//
+//_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_// complement fonc //¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\\
+//¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_//
 
-///////////////////////////////complement F1
-int attendre_touche(){
-    printf("Appuie sur une touche pour continuer...\n");
-    getch(); // Attendre l'appui d'une touche
-    return 0;
-}
-
-///////////////////////////////complement F10
-void stop_program() {
-    printf("Arrêt du programme...\n");
-    exit(0);
-}
+//////////////////////////F10
+volatile int running = 1; // variable globale pour contrôler l'exécution
 
 
 
 
+//¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_//
+//_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_//  pseudo //¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\\
+//¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_//
 
-//¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_//
-//_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_//  pseudo //¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\\
-//¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_//
 
-
-////////////////////////////////////F1            Help                                                      ouvre / ferme la fenetre d'aide
+////////////////////////////////////F1            Help                                                                      ouvre / ferme la fenetre d'aide
 //si F1 appuyee alors
     //ouvrir_fenetre_aide()
     //attendre_touche()
@@ -130,25 +122,25 @@ void stop_program() {
 ////////////////////////////////////F9            Kill
 
 
-////////////////////////////////////F10           Quit                                                                                   Arret complet du programe
+////////////////////////////////////F10           Quit                                                                             Arret complet du programe
 
 
 
 
 
-//¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_//
-//_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_//   F..   //¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\\
-//¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_//
+//¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_//
+//_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_//   F..   //¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\\
+//¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_//
 
 
-/////////////////////////////////////F1             Help                                                                                                   Complete
+/////////////////////////////////////F1             Help                                                                                            Complete
 //fait appele a la fenetre d aide
 void F1_help() {
-    fenetre_aide();
-    attendre_touche();                  // est utiliser pour bloquer la fenetre d aide
-    // fermer_fenetre_aide()    ou     repartir sur le menu principal
-}
 
+    fenetre_aide()                                                                          //ouvre une fenetre d aide
+
+    getchar();// attend une touche
+}
 
 
 ////////////////////////////////////F2              Setup
@@ -156,37 +148,65 @@ void F1_help() {
 
 
 ////////////////////////////////////F3              Search
+
+
 void F3_search() {
-    int i = 1;
+    char query[128];
+    printf("\n=== RECHERCHE (F3) ===\n");
+    printf("Tapez votre texte puis Entrée: ");
+    fflush(stdout);
 
-    while (i == 1) {
-        int ch = getch();
-        if (ch == 0 || ch == 224) {
-            // touche spéciale
-            int special = getch();
-            switch (special) {
-                case 61: printf("F3\n"); break;
+    // Remet temporairement le terminal en mode canonique pour lire une ligne
+    struct termios oldt, newt;
+    tcgetattr(STDIN_FILENO, &oldt);
+    newt = oldt;
+    newt.c_lflag |= ICANON | ECHO;
+    tcsetattr(STDIN_FILENO, TCSANOW, &newt);
 
-                case 72: printf("Flèche haut\n"); break;
-                case 80: printf("Flèche bas\n"); break;
-                case 75: printf("Flèche gauche\n"); break;
-                case 77: printf("Flèche droite\n"); break;
-
-                default: printf("Touche spéciale code: %d\n", special);
-            }
-        } 
-        if(ch == 27) {
-            // touche simple
-            printf("Echap\n");
-        }
+    if (fgets(query, sizeof(query), stdin) != NULL) {
+        // Supprimer le \n
+        query[strcspn(query, "\n")] = 0;
+        printf("Vous avez recherché: %s\n", query);
     }
-    // implémentation de la fonction de recherche
+
+    // Revenir au mode non canonique
+    tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
 }
 
 
-
 ////////////////////////////////////F4              Filter
+void F4_filter() {
+    char query[128];
+    printf("\n=== FILTRE (F4) ===\n");
+    printf("Entrez un texte pour filtrer puis appuyez sur Entrée: ");
+    fflush(stdout);
 
+    // Remet temporairement le terminal en mode canonique pour lire une ligne
+    struct termios oldt, newt;
+    tcgetattr(STDIN_FILENO, &oldt);
+    newt = oldt;
+    newt.c_lflag |= ICANON | ECHO;
+    tcsetattr(STDIN_FILENO, TCSANOW, &newt);
+
+    if (fgets(query, sizeof(query), stdin) != NULL) {
+        query[strcspn(query, "\n")] = 0; // supprime le \n
+        printf("Filtrage sur: %s\n", query);
+
+        // Exemple de données à filtrer
+        const char* items[] = {"processus1", "apache", "mysql", "htop", "processus2"};
+        int count = sizeof(items)/sizeof(items[0]);
+
+        printf("Résultats:\n");
+        for (int i = 0; i < count; i++) {
+            if (strstr(items[i], query)) {
+                printf(" - %s\n", items[i]);
+            }
+        }
+    }
+
+    // Retour au mode non canonique
+    tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
+}
 
 ////////////////////////////////////F5              Tree
 
@@ -205,9 +225,7 @@ void F3_search() {
 
 
 ////////////////////////////////////F10             Quit
-void F10_quit() {
-    stop_program();
-}
+//fai dan le prog principal
 
 
 
@@ -218,85 +236,102 @@ void F10_quit() {
 
 
 
-//¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_//
-//_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_//  teste  //¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\\
-//¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_//
+//¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_//
+//_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_//  teste  //¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\\
+//¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_//
 
 
 ///////////////////////////////////gere l appui de nimporte quelle touche
-int appele_touche(){        
-    
-    printf("Appuie sur une touche...\n");
 
-    int ch = getch();
-    printf("Code de la touche appuyée: %d\n", ch);
-    if (ch == 0 || ch == 224) {
-        // touche spéciale
-        int special = getch();
-        switch (special) {
-            case 27: printf("Echap\n"); break;
 
-            case 59: printf("F1\n"); F1_help(); break;
-            case 60: printf("F2\n"); break;
-            case 61: printf("F3\n"); /*F3_search();*/ break;
-            case 62: printf("F4\n"); break;
-            case 63: printf("F5\n"); break;
-            case 64: printf("F6\n"); break;
-            case 65: printf("F7\n"); break;
-            case 66: printf("F8\n"); break;
-            case 67: printf("F9\n"); break;
-            case 68: printf("F10\n"); break;
 
-            case 72: printf("Flèche haut\n"); break;
-            case 80: printf("Flèche bas\n"); break;
-            case 75: printf("Flèche gauche\n"); break;
-            case 77: printf("Flèche droite\n"); break;
 
-            default: printf("Touche spéciale code: %d\n", special);
-        }
-    } else {
-        // touche simple
-        printf("Touche simple: '%c' (code %d)\n", ch, ch);
-    }
-
-    return 0;
+void initKeyboard() {
+    struct termios t;
+    tcgetattr(STDIN_FILENO, &t);
+    t.c_lflag &= ~(ICANON | ECHO);
+    tcsetattr(STDIN_FILENO, TCSANOW, &t);
+    fcntl(STDIN_FILENO, F_SETFL, O_NONBLOCK);
 }
 
-
-
-
-
-///////////////////////tete pour 2 touche 
-int doublej() {
-    printf("Appuie sur une combinaison de 2 touches...\n");
-
-    int ch1 = getch();   // première touche
-    int ch2 = getch();   // deuxième touche
-
-    if (ch1 == 27 && ch2 == 0) { // ESC puis touche spéciale
-        int special = getch();   // lecture du code spécial
-        if (special == 59) {
-            printf("Combinaison ESC + F1 détectée\n");
-        }
-    } else if (ch1 == 0 || ch1 == 224) {
-        // première touche spéciale
-        int special1 = getch();
-        if (special1 == 68 && ch2 == 27) {
-            printf("Combinaison F10 + ESC détectée\n");
-        }
-    } else {
-        printf("Touche 1: %d, Touche 2: %d\n", ch1, ch2);
+/*
+int detectKeyPress() {
+    char buf[8];
+    int n = read(STDIN_FILENO, buf, sizeof(buf));
+    if (n > 0) {
+        buf[n] = '\0';
+        // Retourne la séquence complète
+        return n; 
     }
-    printf("Fin de la détection des combinaisons de touches.\n");
     return 0;
+}*/
+
+
+void* keyboardThread(void* arg) {
+    char buf[8];
+    while (running) {
+        int n = read(STDIN_FILENO, buf, sizeof(buf)-1);
+        if (n > 0) {
+            buf[n] = '\0';
+
+            // Vérification des séquences F1-F10
+            if (strcmp(buf, "\033OP") == 0){
+                printf("F1 appuyée\n"); 
+                F1_help();
+            }
+            //F2  
+            else if (strcmp(buf, "\033OQ") == 0){ 
+                printf("F2 appuyée\n");
+                
+            }   
+            //F3
+            else if (strcmp(buf, "\033OR") == 0){
+                printf("F3 appuyée\n");
+                F3_search();
+            }
+            //F4   
+            else if (strcmp(buf, "\033OS") == 0){
+                printf("F4 appuyée\n");
+                F4_filter();
+            }
+                
+            else if (strcmp(buf, "\033[15~") == 0) printf("F5 appuyée\n");
+            else if (strcmp(buf, "\033[17~") == 0) printf("F6 appuyée\n");   
+            //F7
+            else if (strcmp(buf, "\033[18~") == 0){ 
+                printf("F7 appuyée\n");
+            }
+                
+            else if (strcmp(buf, "\033[19~") == 0) printf("F8 appuyée\n");
+            else if (strcmp(buf, "\033[20~") == 0) printf("F9 appuyée\n");
+            else if (strcmp(buf, "\033[21~") == 0){
+                printf("F10 appuyée\n");
+                running = 0; // stoppe la boucle
+                break;
+            }
+                
+            else if (buf[0] == 27 && n == 1) { // ESC simple
+                printf("ESC détectée, sortie...\n");
+                break;
+            }
+        }
+        usleep(10000);
+    }
+    return NULL;
 }
-
-
-
-
-
 
 int main() {
-    doublej();
+    initKeyboard();
+    pthread_t tid;
+    pthread_create(&tid, NULL, keyboardThread, NULL);
+
+    // Code principal en parallèle
+    for (int i = 0; i < 10 && running; i++) {
+        printf("Travail principal: %d\n", i);
+        sleep(1);
+    }
+
+    pthread_join(tid, NULL);
+    printf("Programme terminé.\n");
     return 0;
 }
