@@ -2,6 +2,7 @@
 //_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_// include //¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\\
 //¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_//
 
+#include <signal.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <termios.h>
@@ -9,6 +10,8 @@
 #include <pthread.h>
 #include <string.h>
 #include <stdlib.h>
+#include <sys/resource.h>
+#include <errno.h>
 
 #define RESET   "\033[0m"
 #define YELLOW  "\033[33m"
@@ -17,9 +20,7 @@
 #define RED     "\033[31m"
 #define MAGENTA "\033[35m"
 
-
-
-int fenetre_aide() {
+int fenetre_aide(){
     printf(CYAN "htop 3.4.1-3.4.1 - (C) 2004-2019 Hisham Muhammad. (C) 2020-2025 htop dev team.\n" RESET);
     printf(CYAN "Released under the GNU GPLv2+. See 'man' page for more info.\n\n" RESET);
 
@@ -71,13 +72,58 @@ int fenetre_aide() {
     return 0;
 }
 
+//teste de pros
+typedef struct{
+    int pid;
+    char name[64];
+    int nice;
+} Process;
 
+Process processes[] = {
+    {1234, "bash", 0},
+    {2345, "htop", 5},
+    {3456, "vim", 10},
+    {4567, "gcc", -5}
+};
+int process_count = 4;
 
 
 
 //¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_//
 //_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_// complement fonc //¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\\
 //¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_//
+
+//////////////////////////F6
+// Fonction de tri par PID
+int cmp_pid(const void *a, const void *b){
+    return ((Process*)a)->pid - ((Process*)b)->pid;
+}
+
+// Fonction de tri par nom
+int cmp_name(const void *a, const void *b){
+    return strcmp(((Process*)a)->name, ((Process*)b)->name);
+}
+
+// Fonction de tri par nice
+int cmp_nice(const void *a, const void *b){
+    return ((Process*)a)->nice - ((Process*)b)->nice;
+}
+
+
+
+//////////////////////////F9
+volatile pid_t target_pid = -1; // PID du processus à tuer // demander le pid avant
+
+void selectProcess(void){
+
+    printf("=== Liste des processus actifs ===\n");             //
+    // Affiche PID + nom du programme                           //a retirer
+    system("ps -e -o pid,comm");                                //
+
+    printf("\nEntrez le PID du processus à cibler: ");
+    scanf("%d", &target_pid);
+    printf(">> PID %d sélectionné\n", target_pid);
+}
 
 //////////////////////////F10
 volatile int running = 1; // variable globale pour contrôler l'exécution
@@ -135,12 +181,13 @@ volatile int running = 1; // variable globale pour contrôler l'exécution
 
 /////////////////////////////////////F1             Help                                                                                            Complete
 //fait appele a la fenetre d aide
-void F1_help() {
+void F1_help(){
 
-    fenetre_aide()                                                                          //ouvre une fenetre d aide
+    fenetre_aide();                                                                          //ouvre une fenetre d aide
 
     getchar();// attend une touche
 }
+
 
 
 ////////////////////////////////////F2              Setup
@@ -148,9 +195,7 @@ void F1_help() {
 
 
 ////////////////////////////////////F3              Search
-
-
-void F3_search() {
+void F3_search(){
     char query[128];
     printf("\n=== RECHERCHE (F3) ===\n");
     printf("Tapez votre texte puis Entrée: ");
@@ -163,7 +208,7 @@ void F3_search() {
     newt.c_lflag |= ICANON | ECHO;
     tcsetattr(STDIN_FILENO, TCSANOW, &newt);
 
-    if (fgets(query, sizeof(query), stdin) != NULL) {
+    if (fgets(query, sizeof(query), stdin) != NULL){
         // Supprimer le \n
         query[strcspn(query, "\n")] = 0;
         printf("Vous avez recherché: %s\n", query);
@@ -174,8 +219,9 @@ void F3_search() {
 }
 
 
+
 ////////////////////////////////////F4              Filter
-void F4_filter() {
+void F4_filter(){
     char query[128];
     printf("\n=== FILTRE (F4) ===\n");
     printf("Entrez un texte pour filtrer puis appuyez sur Entrée: ");
@@ -188,7 +234,7 @@ void F4_filter() {
     newt.c_lflag |= ICANON | ECHO;
     tcsetattr(STDIN_FILENO, TCSANOW, &newt);
 
-    if (fgets(query, sizeof(query), stdin) != NULL) {
+    if (fgets(query, sizeof(query), stdin) != NULL){
         query[strcspn(query, "\n")] = 0; // supprime le \n
         printf("Filtrage sur: %s\n", query);
 
@@ -197,8 +243,8 @@ void F4_filter() {
         int count = sizeof(items)/sizeof(items[0]);
 
         printf("Résultats:\n");
-        for (int i = 0; i < count; i++) {
-            if (strstr(items[i], query)) {
+        for (int i = 0; i < count; i++){
+            if (strstr(items[i], query)){
                 printf(" - %s\n", items[i]);
             }
         }
@@ -208,26 +254,120 @@ void F4_filter() {
     tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
 }
 
+
+
 ////////////////////////////////////F5              Tree
+void F5_tree(void){
+    printf("\n=== Arbre des processus ===\n");
+    // Appel direct à pstree (si installé sur le système)
+    int ret = system("pstree -p");
+    if (ret != 0){
+        printf(">> Impossible d’exécuter pstree (non installé ?)\n");
+    }
+}
+
 
 
 ////////////////////////////////////F6              SortBy
+void F6_sort_by(void){
+    int choix;
+    printf("\n=== Choisir le tri ===\n");
+    printf("1. PID\n");
+    printf("2. Nom\n");
+    printf("3. Nice\n");
+    printf("Votre choix: ");
+    scanf("%d", &choix);
+
+    switch (choix){
+        case 1:
+            qsort(processes, process_count, sizeof(Process), cmp_pid);
+            printf(">> Tri par PID effectué\n");
+            break;
+        case 2:
+            qsort(processes, process_count, sizeof(Process), cmp_name);
+            printf(">> Tri par Nom effectué\n");
+            break;
+        case 3:
+            qsort(processes, process_count, sizeof(Process), cmp_nice);
+            printf(">> Tri par Nice effectué\n");
+            break;
+        default:
+            printf(">> Choix invalide\n");
+            return;
+    }
+
+    // Afficher la liste triée
+    printf("\n=== Liste triée ===\n");                                                //
+    for (int i = 0; i < process_count; i++) {                                         //
+        printf("PID: %d | Nom: %s | Nice: %d\n",                                      //mettre un affichage trie de la liste de pros
+               processes[i].pid, processes[i].name, processes[i].nice);               //
+    }
+}
+
 
 
 ////////////////////////////////////F7              Nice -
+void F7_nice_plus(void){
+    if (target_pid > 0){
+        // Récupérer la valeur actuelle
+        int current = getpriority(PRIO_PROCESS, target_pid);
+        if (current == -1 && errno != 0){
+            perror("getpriority");
+            return;
+        }
+        int newval = current + 1;
+        if (setpriority(PRIO_PROCESS, target_pid, newval) == 0){
+            printf(">> Nice augmenté: PID %d, valeur %d\n", target_pid, newval);
+        } else{
+            perror("setpriority");
+        }
+    } else{
+        printf(">> Aucun processus sélectionné\n");
+    }
+}
+
 
 
 ////////////////////////////////////F8              Nice +
+void F8_nice_minus(void){
+    if (target_pid > 0){
+        int current = getpriority(PRIO_PROCESS, target_pid);
+        if (current == -1 && errno != 0){
+            perror("getpriority");
+            return;
+        }
+        int newval = current - 1;
+        if (setpriority(PRIO_PROCESS, target_pid, newval) == 0){
+            printf(">> Nice diminué: PID %d, valeur %d\n", target_pid, newval);
+        } else{
+            perror("setpriority");
+        }
+    } else{
+        printf(">> Aucun processus sélectionné\n");
+    }
+}
+
 
 
 ////////////////////////////////////F9              Kill
+void F9_kill(void){
+    if (target_pid > 0){
+        if (kill(target_pid, SIGKILL) == 0){
+            printf(">> Processus %d tué avec succès\n", target_pid);
+        } 
+        else{
+            perror(">> Erreur lors du kill");
+        }
+    } 
+    else{
+        printf(">> Aucun processus sélectionné\n");
+    }
+}
 
 
 
 ////////////////////////////////////F10             Quit
 //fai dan le prog principal
-
-
 
 
 
@@ -246,7 +386,7 @@ void F4_filter() {
 
 
 
-void initKeyboard() {
+void initKeyboard(){
     struct termios t;
     tcgetattr(STDIN_FILENO, &t);
     t.c_lflag &= ~(ICANON | ECHO);
@@ -255,10 +395,10 @@ void initKeyboard() {
 }
 
 /*
-int detectKeyPress() {
+int detectKeyPress(){
     char buf[8];
     int n = read(STDIN_FILENO, buf, sizeof(buf));
-    if (n > 0) {
+    if (n > 0){
         buf[n] = '\0';
         // Retourne la séquence complète
         return n; 
@@ -267,44 +407,70 @@ int detectKeyPress() {
 }*/
 
 
-void* keyboardThread(void* arg) {
+void* keyboardThread(void* arg){
     char buf[8];
-    while (running) {
+    while (running){
         int n = read(STDIN_FILENO, buf, sizeof(buf)-1);
-        if (n > 0) {
+        if (n > 0){
             buf[n] = '\0';
 
             // Vérification des séquences F1-F10
-            if (strcmp(buf, "\033OP") == 0){
+            //F1
+            if (strcmp(buf, "\033OP") == 0){                    ///
                 printf("F1 appuyée\n"); 
                 F1_help();
             }
+
             //F2  
-            else if (strcmp(buf, "\033OQ") == 0){ 
-                printf("F2 appuyée\n");
-                
-            }   
+            else if (strcmp(buf, "\033OQ") == 0){               
+                printf("F2 appuyée\n");   
+            }
+
             //F3
-            else if (strcmp(buf, "\033OR") == 0){
+            else if (strcmp(buf, "\033OR") == 0){               ///
                 printf("F3 appuyée\n");
                 F3_search();
             }
+
             //F4   
-            else if (strcmp(buf, "\033OS") == 0){
+            else if (strcmp(buf, "\033OS") == 0){               ///
                 printf("F4 appuyée\n");
                 F4_filter();
             }
-                
-            else if (strcmp(buf, "\033[15~") == 0) printf("F5 appuyée\n");
-            else if (strcmp(buf, "\033[17~") == 0) printf("F6 appuyée\n");   
+
+            //F5
+            else if (strcmp(buf, "\033[15~") == 0){
+                printf("F5 appuyée\n");
+                F5_tree();
+            }
+
+            //F6
+            else if (strcmp(buf, "\033[17~") == 0){
+                printf("F6 appuyée\n");
+                F6_sort_by();
+            }
+
             //F7
             else if (strcmp(buf, "\033[18~") == 0){ 
                 printf("F7 appuyée\n");
+                selectProcess();
+                F7_nice_plus();
             }
-                
-            else if (strcmp(buf, "\033[19~") == 0) printf("F8 appuyée\n");
-            else if (strcmp(buf, "\033[20~") == 0) printf("F9 appuyée\n");
-            else if (strcmp(buf, "\033[21~") == 0){
+             
+            //F8
+            else if (strcmp(buf, "\033[19~") == 0){
+                printf("F8 appuyée\n");
+                selectProcess();
+                F8_nice_minus();
+            }
+
+            //F9
+            else if (strcmp(buf, "\033[20~") == 0){             ///
+                printf("F9 appuyée\n");
+                selectProcess();
+                F9_kill();
+            }
+            else if (strcmp(buf, "\033[21~") == 0){             ///
                 printf("F10 appuyée\n");
                 running = 0; // stoppe la boucle
                 break;
@@ -312,6 +478,7 @@ void* keyboardThread(void* arg) {
                 
             else if (buf[0] == 27 && n == 1) { // ESC simple
                 printf("ESC détectée, sortie...\n");
+                running = 0; // stoppe la boucle
                 break;
             }
         }
@@ -334,4 +501,4 @@ int main() {
     pthread_join(tid, NULL);
     printf("Programme terminé.\n");
     return 0;
-}
+}5
