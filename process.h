@@ -1,29 +1,26 @@
-#ifndef PROCESS_H //pour que ca s'inclut qu'une seule fois et eviter les erreures de redefinition
+#ifndef PROCESS_H
 #define PROCESS_H
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <ctype.h>
-#include <dirent.h>
-#include <unistd.h>
-#include <sys/stat.h>
-#include <pwd.h>
-#include <signal.h>
 
+#include <sys/types.h>   // pid_t, gid_t
+
+// Structure qui contient les infos d'un processus
 typedef struct {
-    int pid;
-    int ppid;
-    int gid;
-    char user[64];
-    char name[128];
-    char state;
+    pid_t  pid;
+    char   user[64];
+    gid_t  gid;
+    char   name[256];
+    char   state;            // 'R', 'S', 'D', 'Z', etc.
+    pid_t  ppid;
+    double uptime_seconds;
     double cpu_percent;
     double mem_percent;
-    double uptime_seconds;
 } proc_info_t;
-void afficher_processus();
+
+// Fonctions disponibles
+void afficher_processus(void);
 
 proc_info_t get_process_info(pid_t pid);
+void info_processus(pid_t pid);
 
 void pause_processus(pid_t pid);
 void reprise_processus(pid_t pid);

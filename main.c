@@ -3,6 +3,7 @@
 #include <getopt.h>
 #include <sys/sysinfo.h>
 #include "main.h"
+#include "process.h"
 #include "ui.h"
 
 void help(char* nom){
@@ -109,12 +110,7 @@ int main(int argc, char *argv[]) {
 		}
 	}
 	if (nb_options == 0){
-		//a faire
 		run_tui();
-		return 0;
-		/////Lorsqu'aucune option n'est spécifiée,
-		///// alors le programme affiche uniquement les processus de la machine locale 
-		/////(la machine sur laquelle le programme est exécuté).
 	}
 	if (params[REMOTE_SERV].parameter_value.str_param != ""){//quand and remote server est spécifié
 		//a faire
