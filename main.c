@@ -5,6 +5,9 @@
 #include "main.h"
 #include "process.h"
 #include "ui.h"
+#include "process.h"
+#include "network.h"
+
 
 void help(char* nom){
 	printf("Usage %s [Options][argument]\n\n", nom);
