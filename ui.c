@@ -54,44 +54,6 @@ static void show_status_message(const char *msg) {
     usleep(800000); // 0,8 s
 }
 
-// ====================== F7 / F8 : CHANGER NICE ======================
-
-static void change_nice_for_pid(int delta) {
-    pid_t pid = ask_pid_from_user(
-        delta < 0 ?
-        "PID pour augmenter la priorité (nice--): " :
-        "PID pour diminuer la priorité (nice++): "
-    );
-
-    if (pid <= 0) {
-        show_status_message("Aucun PID valide saisi.");
-        return;
-    }
-
-    errno = 0;
-    int current = getpriority(PRIO_PROCESS, pid);
-    if (current == -1 && errno != 0) {
-        char buf[128];
-        snprintf(buf, sizeof(buf),
-                 "getpriority(%d) a échoué : %s", pid, strerror(errno));
-        show_status_message(buf);
-        return;
-    }
-
-    int newval = current + delta;
-    if (setpriority(PRIO_PROCESS, pid, newval) == 0) {
-        char buf[128];
-        snprintf(buf, sizeof(buf),
-                 "Nice modifié: PID %d, %d -> %d", pid, current, newval);
-        show_status_message(buf);
-    } else {
-        char buf[128];
-        snprintf(buf, sizeof(buf),
-                 "setpriority(%d) a échoué : %s", pid, strerror(errno));
-        show_status_message(buf);
-    }
-}
-
 // ====================== F9 : KILL ======================
 
 static void kill_pid_interactive(void) {
@@ -300,17 +262,34 @@ void run_tui(void) {
         if (ch == KEY_F(1) || ch == 'h' || ch == 'H' || ch == '?') {
             show_help_window();
         }
-        // F7 : augmenter priorité (nice--)
+            
+        else if (ch == KEY_F(2)) {
+            show_help_window();       //////a modif pour defiler les fenetre 
+        }
+            
+        else if (ch == KEY_F(3)) {
+            show_help_window();       //////a modif pour defiler les fenetre 
+        }
+            
+        else if (ch == KEY_F(4)) {
+            rechercher_processus(const char *nom);       ////demande le char avant
+        }  
+            
+        else if (ch == KEY_F(5)) {
+            pause_processus(pid_t pid);                   ////met en pose mais demande pid avant        
+        }
+            
+        else if (ch == KEY_F(6)) {
+            arret_processus(pid_t pid);       //////a modif demande pid avant fonction deja presente
+        }
+
         else if (ch == KEY_F(7)) {
-            change_nice_for_pid(-1);
+            kill_pid_interactive();       /////////a modif demande pid avant fonction deja presente
         }
-        // F8 : diminuer priorité (nice++)
-        else if (ch == KEY_F(8)) {
-            change_nice_for_pid(+1);
-        }
+
         // F9 : kill
         else if (ch == KEY_F(9)) {
-            kill_pid_interactive();
+            redemarrer_processus(pid_t pid);        /////////a modif demande pid avant fonction deja presente + modif entete ligne 306
         }
 
         clear();
