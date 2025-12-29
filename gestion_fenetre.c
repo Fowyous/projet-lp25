@@ -109,7 +109,7 @@ int main() {
     pthread_t tid;
     pthread_create(&tid, NULL, keyboardThread, NULL);
 
-    // Code principal en parallèle
+    // Code principal en parallèle a virer
     for (int i = 0; i < 10 && running; i++) {
         printf("Travail principal: %d\n", i);
         sleep(1);
