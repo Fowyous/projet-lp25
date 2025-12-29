@@ -139,6 +139,47 @@ proc_info_t get_process_info(pid_t pid) {
 
 }
 
+void rechercher_processus(const char *nom) {
+    DIR *dir = opendir("/proc");
+    struct dirent *entry;
+    char path[256], buffer[256];
+    FILE *file;
+    int trouve = 0;
+
+    if (!dir) {
+        perror("Erreur ouverture /proc");
+        return;
+    }
+
+    printf("Recherche du processus : %s\n", nom);
+
+    while ((entry = readdir(dir)) != NULL) {
+        if (!isdigit(entry->d_name[0]))
+            continue;
+
+        snprintf(path, sizeof(path), "/proc/%s/comm", entry->d_name);
+        file = fopen(path, "r");
+        if (!file)
+            continue;
+
+        if (fgets(buffer, sizeof(buffer), file)) {
+            buffer[strcspn(buffer, "\n")] = 0;
+
+            if (strcmp(buffer, nom) == 0) {
+                printf("PID trouvé : %s (%s)\n", entry->d_name, buffer);
+                trouve = 1;
+            }
+        }
+
+        fclose(file);
+    }
+
+    closedir(dir);
+
+    if (!trouve)
+        printf("Aucun processus nommé \"%s\" trouvé.\n", nom);
+}
+
 // ---------------------------------------------------------------
 // 2. AFFICHER LES INFORMATIONS D’UN PROCESSUS
 // ---------------------------------------------------------------

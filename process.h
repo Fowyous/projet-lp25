@@ -18,6 +18,7 @@ typedef struct {
 
 // Fonctions disponibles
 void afficher_processus(void);
+void rechercher_processus(const char *nom);
 
 proc_info_t get_process_info(pid_t pid);
 void info_processus(pid_t pid);
