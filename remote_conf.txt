@@ -1,3 +1,0 @@
-//format du fichier:
-//nom_serveur1:adresse_serveur:port:username:password:type_connexion1
-//nom_serveur2:adresse_serveur:port:username:password:type_connexion2
