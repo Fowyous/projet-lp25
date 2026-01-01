@@ -80,6 +80,86 @@ static void kill_pid_interactive(void) {
 // ====================== F1 : AIDE (ADAPTATION fenetre_aide) ======================
 
 static void show_help_window(void) {
+    nodelay(stdscr, FALSE); // bloquant
+    keypad(stdscr, TRUE);
+
+    const char *help_lines[] = {
+        "Aide (inspire de htop)",
+        "",
+        "CPU usage bar: [low/normal/kernel/guest used%]",
+        "Memory bar:    [used/shared/compressed/buffers/cache used/total]",
+        "Swap bar:      [used/cache/frontswap used/total]",
+        "",
+        "Process state:",
+        " R = running",
+        " S = sleeping",
+        " t = traced/stopped",
+        " Z = zombie",
+        " D = disk sleep",
+        "",
+        "#          : hide/show header meters",
+        "Tab        : switch to next screen tab",
+        "Arrows     : scroll process list",
+        "Digits     : incremental PID search",
+        "F3 /       : incremental name search",
+        "F4 \\      : incremental name filtering",
+        "F5 t       : tree view",
+        "",
+        "F7 ]       : higher priority (root only)",
+        "F8 [       : lower priority (+ nice)",
+        "F9 k       : kill process (SIGKILL)",
+        "F10 q / q  : quitter le programme",
+        "",
+        "F1 h ?     : afficher cette aide",
+        "",
+        "F2         : defiler vers le bas",
+        "F3         : defiler vers le haut",
+        "",
+        "Appuyez sur q ou ESC pour revenir."
+    };
+
+    int total_lines = sizeof(help_lines) / sizeof(help_lines[0]);
+    int scroll = 0;
+    int ch;
+
+    while (1) {
+        clear();
+
+        int max_display = LINES - 2;
+        for (int i = 0; i < max_display; i++) {
+            int idx = scroll + i;
+            if (idx >= total_lines)
+                break;
+            mvprintw(i, 0, "%s", help_lines[idx]);
+        }
+
+        mvprintw(LINES - 1, 0,
+                 "F2: bas  F3: haut  q/ESC: retour");
+        refresh();
+
+        ch = getch();
+
+        if (ch == 'q' || ch == 27 || ch == KEY_F(10)) {
+            break;
+        }
+        else if (ch == KEY_F(2)) {
+            if (scroll < total_lines - max_display)
+                scroll++;
+        }
+        else if (ch == KEY_F(3)) {
+            if (scroll > 0)
+                scroll--;
+        }
+    }
+
+    nodelay(stdscr, TRUE); // retour non bloquant
+}
+
+
+
+
+/*ou a voir ancienne version
+static void show_help_window(void) {
     nodelay(stdscr, FALSE); // on veut bloquer sur getch()
 
     clear();
@@ -120,6 +200,7 @@ static void show_help_window(void) {
     getch(); // on attend une touche
     nodelay(stdscr, TRUE);
 }
+*/
 
 // ====================== TABLEAU DES PROCESS ======================
 // (copie de ton code existant)
@@ -238,6 +319,86 @@ static void draw_process_table(void) {
     closedir(dir);
 }
 
+
+// ====================== Recherche de processus ======================
+static void rechercher_processus(const char *nom) {
+    DIR *dir;
+    struct dirent *entry;
+    int row = 4;
+
+    clear();
+    mvprintw(1, 2, "Resultats de recherche pour : \"%s\"", nom);
+    mvprintw(2, 2, "PID     NAME");
+    mvprintw(3, 2, "-----------------------------");
+
+    dir = opendir("/proc");
+    if (!dir) {
+        mvprintw(row, 2, "Impossible d'ouvrir /proc");
+        refresh();
+        getch();
+        return;
+    }
+
+    while ((entry = readdir(dir)) != NULL && row < LINES - 2) {
+        if (!isdigit(entry->d_name[0]))
+            continue;
+
+        pid_t pid = atoi(entry->d_name);
+        char path[256];
+        char pname[64] = "?";
+        FILE *f;
+
+        snprintf(path, sizeof(path), "/proc/%d/comm", pid);
+        f = fopen(path, "r");
+        if (f) {
+            fgets(pname, sizeof(pname), f);
+            pname[strcspn(pname, "\n")] = '\0';
+            fclose(f);
+        }
+
+        /* Recherche partielle (substring) */
+        if (strstr(pname, nom)) {
+            mvprintw(row++, 2, "%-7d %s", pid, pname);
+        }
+    }
+
+    closedir(dir);
+
+    mvprintw(LINES - 1, 2, "Appuyez sur une touche pour revenir");
+    refresh();
+    getch();
+}
+
+
+// ====================== demander processus ======================
+static proc_info_t demander_processus(void) {
+    proc_info_t p;
+    char buf[32];
+
+    /* Initialisation propre de la structure */
+    memset(&p, 0, sizeof(proc_info_t));
+    p.pid = -1;
+
+    nodelay(stdscr, FALSE);
+    echo();
+    curs_set(1);
+
+    clear();
+    mvprintw(2, 2, "Entrer le PID du processus : ");
+    refresh();
+
+    getnstr(buf, sizeof(buf) - 1);
+
+    noecho();
+    curs_set(0);
+    nodelay(stdscr, TRUE);
+
+    p.pid = (pid_t)atoi(buf);
+
+    return p;
+}
+
+
 // ====================== BOUCLE PRINCIPALE TUI ======================
 
 void run_tui(void) {
@@ -281,22 +442,38 @@ void run_tui(void) {
 
         // F5 : pause
         else if (ch == KEY_F(5)) {
-            pause_processus(ask_pid_from_user());                                           ///a verif        
+                proc_info_t proc = demander_processus();
+   	        if (proc.pid > 0) {
+                pause_processus(proc.pid);
+                proc.pid = 0;
+	        }                         
         }
 
         // F6 : arret
         else if (ch == KEY_F(6)) {
-            arret_processus(ask_pid_from_user());                                           ///a verif
+            proc_info_t proc = demander_processus();
+    	    if (proc.pid > 0) {
+                arret_processus(proc.pid);
+                proc.pid = 0;
+	        }
         }
 
         // F7 : kill
         else if (ch == KEY_F(7)) {
-            kill_pid_interactive();                                     ///a verif
+            proc_info_t proc = demander_processus();
+    	    if (proc.pid > 0) {
+                kill(proc.pid, SIGKILL);
+                proc.pid = 0;
+	        }      
         }
 
         // F8 : redémare
         else if (ch == KEY_F(8)) {
-            redemarrer_processus(ask_pid_from_user());                                    ///a verif
+            proc_info_t proc = demander_processus();
+	        if (proc.pid > 0) {
+                redemarrer_processus(proc.pid);
+                proc.pid = 0;
+	        }
         }
 
         clear();
