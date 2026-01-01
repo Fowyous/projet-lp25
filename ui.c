@@ -13,6 +13,7 @@
 #include <sys/resource.h>
 
 #include "ui.h"
+#include "process.h"
 
 // ====================== HELPER : DEMANDER UN PID ======================
 
@@ -262,34 +263,40 @@ void run_tui(void) {
         if (ch == KEY_F(1) || ch == 'h' || ch == 'H' || ch == '?') {
             show_help_window();
         }
-            
+
+        // F2 : onglet suivant
         else if (ch == KEY_F(2)) {
-            show_help_window();       //////a modif pour defiler les fenetre 
+            //////a modif pour defiler les fenetre /////////////////////////////////////////////////////////////////////////////
         }
-            
+
+        // F3 : onglet précédent
         else if (ch == KEY_F(3)) {
-            show_help_window();       //////a modif pour defiler les fenetre 
+            //////a modif pour defiler les fenetre /////////////////////////////////////////////////////////////////////////////
         }
-            
+
+        // F4 : recherche
         else if (ch == KEY_F(4)) {
-            rechercher_processus(const char *nom);       ////demande le char avant
+            rechercher_processus();                                                         ///a verif
         }  
-            
+
+        // F5 : pause
         else if (ch == KEY_F(5)) {
-            pause_processus(pid_t pid);                   ////met en pose mais demande pid avant        
+            pause_processus(ask_pid_from_user());                                           ///a verif        
         }
-            
+
+        // F6 : arret
         else if (ch == KEY_F(6)) {
-            arret_processus(pid_t pid);       //////a modif demande pid avant fonction deja presente
+            arret_processus(ask_pid_from_user());                                           ///a verif
         }
 
+        // F7 : kill
         else if (ch == KEY_F(7)) {
-            kill_pid_interactive();       /////////a modif demande pid avant fonction deja presente
+            kill_pid_interactive(ask_pid_from_user());                                     ///a verif
         }
 
-        // F9 : kill
-        else if (ch == KEY_F(9)) {
-            redemarrer_processus(pid_t pid);        /////////a modif demande pid avant fonction deja presente + modif entete ligne 306
+        // F8 : redémare
+        else if (ch == KEY_F(8)) {
+            redemarrer_processus(ask_pid_from_user());                                    ///a verif
         }
 
         clear();
@@ -303,7 +310,7 @@ void run_tui(void) {
 
         // Ligne de bas d'écran (rappel des touches principales)
         mvprintw(LINES - 1, 0,
-                 "F1/h/?: aide  |  F7/F8: nice +/-  |  F9: kill  |  F10/q: quitter");
+                 "F1/h/?: aide  |  F2/F3: defiler  |  F4: kill  |  F5: pause  |  F6: arret  |  F7: kill  |  F8: redemarer  |  F10/q: quitter");
 
         refresh();
         usleep(400000); // 0,4 s
