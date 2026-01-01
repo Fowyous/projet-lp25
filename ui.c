@@ -291,7 +291,7 @@ void run_tui(void) {
 
         // F7 : kill
         else if (ch == KEY_F(7)) {
-            kill_pid_interactive(ask_pid_from_user());                                     ///a verif
+            kill_pid_interactive();                                     ///a verif
         }
 
         // F8 : redémare
