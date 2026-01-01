@@ -1,33 +1,46 @@
 #ifndef NETWORK_H
 #define NETWORK_H
 
+#include <libssh/libssh.h>
+#include <libssh/callbacks.h>
+#include <libtelnet.h>
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <errno.h>
 
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
+#define BUFFER_SIZE 4096
 
-#define BUFFER_SIZE 1024
+/* ===================== SSH ===================== */
 
-// Création d'un serveur TCP
-int create_server(int port);
+// Connexion SSH
+ssh_session ssh_connect(const char *host, int port, const char *user, const char *password);
 
-// Accepter un client
-int accept_client(int server_fd);
+// Exécution d'une commande distante
+int ssh_execute_command(ssh_session session, const char *command, char *output, size_t out_size);
 
-// Connexion à un serveur TCP
-int connect_to_server(const char *ip, int port);
+// Fermeture session SSH
+void ssh_disconnect(ssh_session session);
 
-// Envoi et réception
-ssize_t send_message(int sockfd, const char *message);
-ssize_t receive_message(int sockfd, char *buffer, size_t size);
+/* ===================== TELNET ===================== */
 
-// Fermeture socket
-void close_socket(int sockfd);
+// Structure Telnet
+typedef struct {
+    telnet_t *telnet;
+    int sockfd;
+} telnet_client_t;
+
+// Connexion Telnet
+telnet_client_t *telnet_connect(const char *host, int port);
+
+// Envoi commande Telnet
+void telnet_send_command(telnet_client_t *client, const char *command);
+
+// Réception Telnet (callback)
+void telnet_event_handler(telnet_t *telnet, telnet_event_t *ev, void *user_data);
+
+// Fermeture Telnet
+void telnet_disconnect(telnet_client_t *client);
 
 #endif
