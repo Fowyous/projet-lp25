@@ -195,17 +195,16 @@ static pid_t draw_process_table(pid_t start_pid) {
 
 
 // ====================== RECHERCHE PID PRECEDE ======================
-pid_t find_previous_page_start(pid_t start_pid) {
-    int max_lines = LINES - 4;
+pid_t find_previous_page_start(pid_t start_pid, ){
+	int max_lines = LINES - 4;
     DIR *dir = opendir("/proc");
     if (!dir)
         return 1;
 
     struct dirent *entry;
-    pid_t ancien_pid = 1;
+    pid_t pids[4096];
     int count = 0;
 
-    // On cherche tous les PID < start_pid
     while ((entry = readdir(dir)) != NULL) {
 
         if (!isdigit((unsigned char)entry->d_name[0]))
@@ -219,16 +218,27 @@ pid_t find_previous_page_start(pid_t start_pid) {
         if (info.pid == -1)
             continue;
 
-        if (count == 0)
-            ancien_pid = info.pid;
-
-        count++;
-        if (count >= max_lines)
-            break;
+        pids[count++] = pid;
     }
     closedir(dir);
-    return ancien_pid;
+    if (count == 0)
+        return 1;
+
+    qsort(pids, count, sizeof(pid_t), 
+        [](const void *a, const void *b) {
+            pid_t pa = *(pid_t*)a;
+            pid_t pb = *(pid_t*)b;
+            return (pa > pb) - (pa < pb);
+        }
+    );
+
+    if (count <= max_lines)
+        return 1;
+
+    int index = count - max_lines;
+    return pids[index];
 }
+
 
 
 // ====================== Recherche de processus ======================
