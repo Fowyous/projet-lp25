@@ -33,6 +33,7 @@ void afficher_processus() {
     }
 
     closedir(dir);
+}
 // ---------------------------------------------------------------
 // 2. AFFICHER LES INFORMATIONS D’UN PROCESSUS
 // ---------------------------------------------------------------
@@ -137,8 +138,8 @@ proc_info_t get_process_info(pid_t pid) {
     return info;
 }
 
-}
 
+/*
 void rechercher_processus(const char *nom) {
     DIR *dir = opendir("/proc");
     struct dirent *entry;
@@ -179,7 +180,7 @@ void rechercher_processus(const char *nom) {
     if (!trouve)
         printf("Aucun processus nommé \"%s\" trouvé.\n", nom);
 }
-
+*/
 // ---------------------------------------------------------------
 // 2. AFFICHER LES INFORMATIONS D’UN PROCESSUS
 // ---------------------------------------------------------------

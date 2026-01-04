@@ -1,9 +1,10 @@
 # Compiler
 CC = gcc
 
-# les drapeaux
+# Flags
 CFLAGS = -Wall -g
 LDFLAGS = -lncurses
+
 # Directories
 SRC_DIR = .
 BIN_DIR = bin
@@ -12,9 +13,8 @@ OBJ_DIR = obj
 # Target executable name
 TARGET = $(BIN_DIR)/main
 
-# fichiers sources
-#SRCS = $(wildcard $(SRC_DIR)/*.c) #mettre tout les .c dans la variable
-SRCS = main.c process.c ui.c #utiliser seulement ces fichiers .c
+# Source files
+SRCS = main.c process.c ui.c lecture_fichier.c
 # Object files
 OBJS = $(patsubst $(SRC_DIR)/%.c, $(OBJ_DIR)/%.o, $(SRCS))
 
@@ -27,7 +27,7 @@ $(BIN_DIR):
 
 # Linking target
 $(TARGET): $(OBJS)
-	$(CC) $(LDFLAGS) -o $@ $^
+	$(CC) -o $@ $^ $(LDFLAGS)
 
 # Compile source files to object files
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c | $(OBJ_DIR)

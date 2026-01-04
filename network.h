@@ -15,7 +15,7 @@
 /* ===================== SSH ===================== */
 
 // Connexion SSH
-ssh_session ssh_connect(const char *host, int port, const char *user, const char *password);
+//ssh_session ssh_connect(const char *host, int port, const char *user, const char *password);
 
 // Exécution d'une commande distante
 int ssh_execute_command(ssh_session session, const char *command, char *output, size_t out_size);
