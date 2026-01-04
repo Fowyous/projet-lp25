@@ -195,36 +195,37 @@ static pid_t draw_process_table(pid_t start_pid) {
 
 
 // ====================== RECHERCHE PID PRECEDE ======================
-pid_t find_previous_page_start(pid_t start_pid, int max_lines){
-    DIR *dir = opendir("/proc");
-    if (!dir)
-        return 1;
+pid_t find_previous_page_start(pid_t start_pid, int max_lines) {
+    pid_t current_start = start_pid;
+    for (int i = 0; i < max_lines; i++) {
+        DIR *dir = opendir("/proc");
+        if (!dir)
+            return 1;
 
-    struct dirent *entry;
-    pid_t ancien_pid = 1;
-    int count = 0;
+        struct dirent *entry;
+        pid_t ancien_pid = 1;
+        while ((entry = readdir(dir)) != NULL) {
+            if (!isdigit((unsigned char)entry->d_name[0]))
+                continue;
 
-    while ((entry = readdir(dir)) != NULL) {
-        if (!isdigit((unsigned char)entry->d_name[0]))
-            continue;
+            pid_t pid = atoi(entry->d_name);
+            if (pid >= current_start)
+                continue;
 
-        pid_t pid = atoi(entry->d_name);
-        if (pid >= start_pid)
-            continue;
+            proc_info_t info = get_process_info(pid);
+            if (info.pid == -1)
+                continue;
 
-        proc_info_t info = get_process_info(pid);
-        if (info.pid == -1)
-            continue;
-
-        if (info.pid > ancien_pid)
-            ancien_pid = info.pid;
-
-        count++;
-        if (count >= max_lines)
-            break;
+            if (info.pid > ancien_pid)
+                ancien_pid = info.pid;
+        }
+        closedir(dir);
+        if (ancien_pid == 1)
+            return 1;
+		
+        current_start = ancien_pid;
     }
-    closedir(dir);
-    return ancien_pid;
+    return current_start;
 }
 
 
