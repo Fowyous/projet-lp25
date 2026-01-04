@@ -200,7 +200,7 @@ pid_t find_previous_page_start(pid_t start_pid, int max_lines){
     if (!dir)
         return 1;
 
-    struct dirententry;
+    struct dirent *entry;
     pid_t ancien_pid = 1;
     int count = 0;
 
