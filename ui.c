@@ -80,127 +80,49 @@ static void kill_pid_interactive(void) {
 // ====================== F1 : AIDE (ADAPTATION fenetre_aide) ======================
 
 static void show_help_window(void) {
-	nodelay(stdscr, FALSE); // bloquant
-	keypad(stdscr, TRUE);
+	    nodelay(stdscr, FALSE); // on veut bloquer sur getch()
 
-	const char *help_lines[] = {
-		"Aide (inspire de htop)",
-		"",
-		"CPU usage bar: [low/normal/kernel/guest used%]",
-		"Memory bar:    [used/shared/compressed/buffers/cache used/total]",
-		"Swap bar:      [used/cache/frontswap used/total]",
-		"",
-		"Process state:",
-		" R = running",
-		" S = sleeping",
-		" t = traced/stopped",
-		" Z = zombie",
-		" D = disk sleep",
-		"",
-		"#          : hide/show header meters",
-		"Tab        : switch to next screen tab",
-		"Arrows     : scroll process list",
-		"Digits     : incremental PID search",
-		"F3 /       : incremental name search",
-		"F4 \\      : incremental name filtering",
-		"F5 t       : tree view",
-		"",
-		"F7 ]       : higher priority (root only)",
-		"F8 [       : lower priority (+ nice)",
-		"F9 k       : kill process (SIGKILL)",
-		"F10 q / q  : quitter le programme",
-		"",
-		"F1 h ?     : afficher cette aide",
-		"",
-		"F2         : defiler vers le bas",
-		"F3         : defiler vers le haut",
-		"",
-		"Appuyez sur q ou ESC pour revenir."
-	};
+    clear();
+    int row = 0;
 
-	int total_lines = sizeof(help_lines) / sizeof(help_lines[0]);
-	int scroll = 0;
-	int ch;
+    mvprintw(row++, 0, "Aide");
+    row++;
 
-	while (1) {
-		clear();
+    mvprintw(row++, 0, "CPU usage bar: [low/normal/kernel/guest used%%]");
+    mvprintw(row++, 0, "Memory bar:    [used/shared/compressed/buffers/cache used/total]");
+    mvprintw(row++, 0, "Swap bar:      [used/cache/frontswap used/total]");
+    row++;
 
-		int max_display = LINES - 2;
-		for (int i = 0; i < max_display; i++) {
-			int idx = scroll + i;
-			if (idx >= total_lines)
-				break;
-			mvprintw(i, 0, "%s", help_lines[idx]);
-		}
+    mvprintw(row++, 0, "F1         : afficher cette aide");
+    row++;
 
-		mvprintw(LINES - 1, 0,
-				"F2: bas  F3: haut  q/ESC: retour");
-		refresh();
+    mvprintw(row++, 0, "F2         : defiler vers le bas");
+    mvprintw(row++, 0, "F3         : defiler vers le haut");
+    row++;
 
-		ch = getch();
+    mvprintw(row++, 0, "F4         : recherche un processus avec son nom");*
+    row++;
 
-		if (ch == 'q' || ch == 27 || ch == KEY_F(10)) {
-			break;
-		}
-		else if (ch == KEY_F(2)) {
-			if (scroll < total_lines - max_display)
-				scroll++;
-		}
-		else if (ch == KEY_F(3)) {
-			if (scroll > 0)
-				scroll--;
-		}
-	}
+    mvprintw(row++, 0, "F5         : mettre en pause un processus");
+    mvprintw(row++, 0, "F6         : arret un processus");
+    mvprintw(row++, 0, "F7         : kill le processus");
+    mvprintw(row++, 0, "F8         : redemarer un processus");
+    row++;
 
-	nodelay(stdscr, TRUE); // retour non bloquant
+    mvprintw(row++, 0, "F10 q / q  : quitter le programme");
+    row++;
+
+
+    mvprintw(row++, 0, "Appuyez sur n'importe quelle touche pour revenir.");
+    refresh();
+
+    getch(); // on attend une touche
+    nodelay(stdscr, TRUE);
 }
 
 
 
 
-/*ou a voir ancienne version
-  static void show_help_window(void) {
-  nodelay(stdscr, FALSE); // on veut bloquer sur getch()
-
-  clear();
-  int row = 0;
-
-  mvprintw(row++, 0, "Aide (inspiré de htop)");
-  row++;
-
-  mvprintw(row++, 0, "CPU usage bar: [low/normal/kernel/guest used%%]");
-  mvprintw(row++, 0, "Memory bar:    [used/shared/compressed/buffers/cache used/total]");
-  mvprintw(row++, 0, "Swap bar:      [used/cache/frontswap used/total]");
-  row++;
-
-  mvprintw(row++, 0, "Process state: R=running, S=sleeping, t=traced/stopped, Z=zombie, D=disk sleep");
-  row++;
-
-  mvprintw(row++, 0, "#          : hide/show header meters");
-  mvprintw(row++, 0, "Tab        : switch to next screen tab");
-  mvprintw(row++, 0, "Arrows     : scroll process list");
-  mvprintw(row++, 0, "Digits     : incremental PID search");
-  mvprintw(row++, 0, "F3 /       : incremental name search");
-  mvprintw(row++, 0, "F4 \\\\      : incremental name filtering");
-  mvprintw(row++, 0, "F5 t       : tree view");
-  row++;
-
-  mvprintw(row++, 0, "F7 ]       : higher priority (root only)");
-  mvprintw(row++, 0, "F8 [       : lower priority (+ nice)");
-  mvprintw(row++, 0, "F9 k       : kill process (SIGKILL)");
-  mvprintw(row++, 0, "F10 q / q  : quitter le programme");
-  row++;
-
-  mvprintw(row++, 0, "F1 h ?     : afficher cette aide");
-  row++;
-
-  mvprintw(row++, 0, "Appuyez sur n'importe quelle touche pour revenir.");
-  refresh();
-
-  getch(); // on attend une touche
-  nodelay(stdscr, TRUE);
-  }
-  */
 
 // ====================== TABLEAU DES PROCESS ======================
 // (copie de ton code existant)
@@ -437,7 +359,7 @@ void run_tui(void) {
 
         // Ligne de bas d'écran (rappel des touches principales)
         mvprintw(LINES - 1, 0,
-                 "F1/h/?: aide  |  F2/F3: defiler  |  F4: kill  |  F5: pause  |  F6: arret  |  F7: kill  |  F8: redemarer  |  F10/q: quitter");
+                 "F1/h/?: aide  |  F2/F3: defiler  |  F4: recherche  |  F5: pause  |  F6: arret  |  F7: kill  |  F8: redemarer  |  F10/q: quitter");
 
         refresh();
         usleep(400000); // 0,4 s
