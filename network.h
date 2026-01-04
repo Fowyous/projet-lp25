@@ -36,14 +36,26 @@ void network_ssh_disconnect(ssh_session session);
 /* =========================================================
  * TELNET
  * ========================================================= */
-
+/*
 typedef struct {
     int sockfd;
     telnet_t *telnet;
     char buffer[NETWORK_BUFFER_SIZE];
     size_t buffer_len;
 } telnet_client_t;
+*/
 
+typedef struct {
+    int sockfd;
+    telnet_t *telnet;
+} telnet_client_t;
+
+void telnet_event_handler(telnet_t *telnet, telnet_event_t *ev, void *user_data);
+void *reader_thread(void *arg);
+
+telnet_client_t *telnet_connect(const char *ip, int port);
+
+/*
 // Connexion Telnet
 telnet_client_t *network_telnet_connect(const char *host, int port);
 
@@ -59,5 +71,5 @@ void network_telnet_event_handler(
 
 // Fermeture Telnet
 void network_telnet_disconnect(telnet_client_t *client);
-
+*/
 #endif

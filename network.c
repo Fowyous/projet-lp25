@@ -98,35 +98,83 @@ void network_ssh_disconnect(ssh_session session) {
 /* =========================================================
  * TELNET
  * ========================================================= */
-
+/*
 static const telnet_telopt_t telnet_options[] = {
     { TELNET_TELOPT_ECHO, TELNET_WILL, TELNET_DO },
     { TELNET_TELOPT_SGA,  TELNET_WILL, TELNET_DO },
     { -1, 0, 0 }
 };
+*/
+void telnet_event_handler(telnet_t *telnet, telnet_event_t *ev, void *user_data) {
+    switch (ev->type) {
+        case TELNET_EV_DATA:
+            fwrite(ev->data.buffer, 1, ev->data.size, stdout);
+            fflush(stdout);
+            break;
 
-void network_telnet_event_handler(
-    telnet_t *telnet,
-    telnet_event_t *event,
-    void *user_data
-) {
-    telnet_client_t *client = (telnet_client_t *)user_data;
+        case TELNET_EV_SEND:
+            send(((telnet_client_t*)user_data)->sockfd, ev->data.buffer, ev->data.size, 0);
+            break;
 
-    if (event->type == TELNET_EV_DATA) {
-        size_t copy = event->data.size;
-
-        if (client->buffer_len + copy >= NETWORK_BUFFER_SIZE)
-            copy = NETWORK_BUFFER_SIZE - client->buffer_len - 1;
-
-        memcpy(client->buffer + client->buffer_len,
-               event->data.buffer,
-               copy);
-
-        client->buffer_len += copy;
-        client->buffer[client->buffer_len] = '\0';
+        case TELNET_EV_ERROR:
+            fprintf(stderr, "Telnet error: %s\n", ev->error.msg);
+            exit(1);
     }
 }
 
+
+
+void *reader_thread(void *arg) {
+    telnet_client_t *client = (telnet_client_t*)arg;
+    char buffer[BUFFER_SIZE];
+
+    while (1) {
+        int n = recv(client->sockfd, buffer, sizeof(buffer), 0);
+        if (n <= 0) {
+            printf("\nDisconnected from server.\n");
+            exit(0);
+        }
+        telnet_recv(client->telnet, buffer, n);
+    }
+}
+
+
+telnet_client_t *telnet_connect(const char *ip, int port) {
+    telnet_client_t *client = malloc(sizeof(telnet_client_t));
+
+    client->sockfd = socket(AF_INET, SOCK_STREAM, 0);
+    if (client->sockfd < 0) {
+        perror("socket");
+        exit(1);
+    }
+
+    struct sockaddr_in addr = {0};
+    addr.sin_family = AF_INET;
+    addr.sin_port = htons(port);
+    inet_pton(AF_INET, ip, &addr.sin_addr);
+
+    if (connect(client->sockfd, (struct sockaddr*)&addr, sizeof(addr)) < 0) {
+        perror("connect");
+        exit(1);
+    }
+
+    printf("Connected.\n");
+
+    static const telnet_telopt_t telopts[] = {
+        { TELNET_TELOPT_ECHO, TELNET_WILL, TELNET_DO },
+        { TELNET_TELOPT_TTYPE, TELNET_WILL, TELNET_DO },
+        { TELNET_TELOPT_NAWS, TELNET_WILL, TELNET_DO },
+        { -1, 0, 0 }
+    };
+
+    client->telnet = telnet_init(telopts, telnet_event_handler, 0, client);
+
+    return client;
+}
+
+
+
+/*
 telnet_client_t *network_telnet_connect(const char *host, int port) {
     telnet_client_t *client = calloc(1, sizeof(telnet_client_t));
     if (!client)
@@ -188,4 +236,4 @@ void network_telnet_disconnect(telnet_client_t *client) {
     telnet_free(client->telnet);
     close(client->sockfd);
     free(client);
-}
+}*/
