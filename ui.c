@@ -200,9 +200,12 @@ void rechercher_processus(const char *nom) {
     int row = 4;
 
     clear();
+
     mvprintw(1, 2, "Resultats de recherche pour : \"%s\"", nom);
-    mvprintw(2, 2, "PID     NAME");
-    mvprintw(3, 2, "-----------------------------");
+    mvprintw(2, 2,
+             " PID   USER     ADRESSE         S   CPU%%   MEM%%  PPID   GID  NAME                          UPTIME");
+    mvprintw(3, 2,
+             "-----------------------------------------------------------------------------------------------");
 
     dir = opendir("/proc");
     if (!dir) {
@@ -213,10 +216,13 @@ void rechercher_processus(const char *nom) {
     }
 
     while ((entry = readdir(dir)) != NULL && row < LINES - 2) {
-        if (!isdigit(entry->d_name[0]))
+
+        if (!isdigit((unsigned char)entry->d_name[0]))
             continue;
 
         pid_t pid = atoi(entry->d_name);
+
+        /* Récupération rapide du nom pour le filtre */
         char path[256];
         char pname[64] = "?";
         FILE *f;
@@ -229,10 +235,30 @@ void rechercher_processus(const char *nom) {
             fclose(f);
         }
 
-        /* Recherche partielle (substring) */
-        if (strstr(pname, nom)) {
-            mvprintw(row++, 2, "%-7d %s", pid, pname);
-        }
+        /* Filtrage par nom */
+        if (!strstr(pname, nom))
+            continue;
+
+        /* Infos complètes du processus */
+        proc_info_t info = get_process_info(pid);
+        if (info.pid == -1)
+            continue;
+
+        /* Dans le contexte du projet : serveur courant */
+        const char *adresse_affichee = "local";
+
+        mvprintw(row++, 0,
+                 "%6d %-8.8s %-15.15s %1c %7.2f %7.2f %6d %6d %-30.30s %10.1f",
+                 info.pid,
+                 info.user,
+                 adresse_affichee,
+                 info.state,
+                 info.cpu_percent,
+                 info.mem_percent,
+                 info.ppid,
+                 (int)info.gid,
+                 info.name,
+                 info.uptime_seconds);
     }
 
     closedir(dir);
@@ -241,7 +267,6 @@ void rechercher_processus(const char *nom) {
     refresh();
     getch();
 }
-
 
 // ====================== demander processus ======================
 static proc_info_t demander_processus(void) {
@@ -314,17 +339,19 @@ void run_tui(void) {
 
         // F4 : recherche
 	else if (ch == KEY_F(4)) {
-    	char nom[64];
+		nodelay(stdscr, FALSE);
+    		char nom[64];
 
-    	echo();
-    	mvprintw(LINES - 2, 2, "Nom du processus a rechercher : ");
-    	getnstr(nom, sizeof(nom) - 1);
-    	noecho();
+    		echo();
+    		mvprintw(LINES - 2, 2, "Nom du processus a rechercher : ");
+    		getnstr(nom, sizeof(nom) - 1);
+    		noecho();
 
-    	if (strlen(nom) > 0) {
-        	rechercher_processus(nom);
+    		if (strlen(nom) > 0) {
+        		rechercher_processus(nom);
     		}
-	} 
+		nodelay(stdscr, FALSE);
+	}
 
         // F5 : pause
         else if (ch == KEY_F(5)) {
