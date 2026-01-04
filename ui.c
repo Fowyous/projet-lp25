@@ -80,7 +80,7 @@ static void kill_pid_interactive(void) {
 // ====================== F1 : AIDE (ADAPTATION fenetre_aide) ======================
 
 static void show_help_window(void) {
-	    nodelay(stdscr, FALSE); // on veut bloquer sur getch()
+	nodelay(stdscr, FALSE); // on veut bloquer sur getch()
 
     clear();
     int row = 0;
@@ -100,7 +100,7 @@ static void show_help_window(void) {
     mvprintw(row++, 0, "F3         : defiler vers le haut");
     row++;
 
-    mvprintw(row++, 0, "F4         : recherche un processus avec son nom");*
+    mvprintw(row++, 0, "F4         : recherche un processus avec son nom");
     row++;
 
     mvprintw(row++, 0, "F5         : mettre en pause un processus");
