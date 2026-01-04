@@ -48,7 +48,7 @@ int redemarrer_processus_distant_ssh(ssh_session session, pid_t pid) {
 }
 
 /* =========================================================
- * TELNET (pédagogique)
+ * TELNET
  * ========================================================= */
 
 static int exec_kill_telnet(telnet_client_t *client, int sig, pid_t pid) {
