@@ -126,7 +126,7 @@ void telnet_event_handler(telnet_t *telnet, telnet_event_t *ev, void *user_data)
 
 void *reader_thread(void *arg) {
     telnet_client_t *client = (telnet_client_t*)arg;
-    char buffer[BUFFER_SIZE];
+    char buffer[NETWORK_BUFFER_SIZE];
 
     while (1) {
         int n = recv(client->sockfd, buffer, sizeof(buffer), 0);

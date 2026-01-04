@@ -1,6 +1,8 @@
 #ifndef UI_H
 #define UI_H
 
-void run_tui(void);
+#include "main.h"
+
+void run_tui(parameter_t *params);
 
 #endif

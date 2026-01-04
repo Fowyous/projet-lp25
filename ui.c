@@ -14,6 +14,7 @@
 #include "lecture_fichier.h"
 #include "ui.h"
 #include "process.h"
+#include "network.h"
 
 // ====================== HELPER : DEMANDER UN PID ======================
 
@@ -82,261 +83,331 @@ static void kill_pid_interactive(void) {
 static void show_help_window(void) {
 	nodelay(stdscr, FALSE); // on veut bloquer sur getch()
 
-    clear();
-    int row = 0;
+	clear();
+	int row = 0;
 
-    mvprintw(row++, 0, "Aide");
-    row++;
+	mvprintw(row++, 0, "Aide");
+	row++;
 
-    mvprintw(row++, 0, "CPU usage bar: [low/normal/kernel/guest used%%]");
-    mvprintw(row++, 0, "Memory bar:    [used/shared/compressed/buffers/cache used/total]");
-    mvprintw(row++, 0, "Swap bar:      [used/cache/frontswap used/total]");
-    row++;
+	mvprintw(row++, 0, "CPU usage bar: [low/normal/kernel/guest used%%]");
+	mvprintw(row++, 0, "Memory bar:    [used/shared/compressed/buffers/cache used/total]");
+	mvprintw(row++, 0, "Swap bar:      [used/cache/frontswap used/total]");
+	row++;
 
-    mvprintw(row++, 0, "F1         : afficher cette aide");
-    row++;
+	mvprintw(row++, 0, "F1         : afficher cette aide");
+	row++;
 
-    mvprintw(row++, 0, "F2         : defiler vers le bas");
-    mvprintw(row++, 0, "F3         : defiler vers le haut");
-    row++;
+	mvprintw(row++, 0, "F2         : defiler vers le bas");
+	mvprintw(row++, 0, "F3         : defiler vers le haut");
+	row++;
 
-    mvprintw(row++, 0, "F4         : recherche un processus avec son nom");
-    row++;
+	mvprintw(row++, 0, "F4         : recherche un processus avec son nom");
+	row++;
 
-    mvprintw(row++, 0, "F5         : mettre en pause un processus");
-    mvprintw(row++, 0, "F6         : arret un processus");
-    mvprintw(row++, 0, "F7         : kill le processus");
-    mvprintw(row++, 0, "F8         : redemarer un processus");
-    row++;
+	mvprintw(row++, 0, "F5         : mettre en pause un processus");
+	mvprintw(row++, 0, "F6         : arret un processus");
+	mvprintw(row++, 0, "F7         : kill le processus");
+	mvprintw(row++, 0, "F8         : redemarer un processus");
+	row++;
 
-    mvprintw(row++, 0, "F10 q / q  : quitter le programme");
-    row++;
+	mvprintw(row++, 0, "F10 q / q  : quitter le programme");
+	row++;
 
 
-    mvprintw(row++, 0, "Appuyez sur n'importe quelle touche pour revenir.");
-    refresh();
+	mvprintw(row++, 0, "Appuyez sur n'importe quelle touche pour revenir.");
+	refresh();
 
-    getch(); // on attend une touche
-    nodelay(stdscr, TRUE);
+	getch(); // on attend une touche
+	nodelay(stdscr, TRUE);
 }
 
-// ====================== TABLEAU DES PROCESS ======================
-static pid_t draw_process_table(pid_t start_pid) {
-    DIR *dir = opendir("/proc");
-    struct dirent *entry;
-    int row = 2;
-    pid_t last_pid = -1;
 
-    if (!dir) {
-        mvprintw(0, 0, "Impossible d'ouvrir /proc");
-        return last_pid;
-    }
+static pid_t draw_process_table_telnet(telnet_client_t *client, pid_t start_pid){
+	int row = 2;
+	pid_t last_pid = -1;
 
-    while ((entry = readdir(dir)) != NULL && row < LINES - 2) {
-
-        if (!isdigit((unsigned char)entry->d_name[0]))
-            continue;
-
-        pid_t pid = atoi(entry->d_name);
-	if (pid < start_pid)
-		continue;
-        proc_info_t info = get_process_info(pid);
-
-        if (info.pid == -1)
-            continue;
-
-	last_pid = info.pid;
-
-        // Sélection de la couleur selon l’état
-        int color = 6; // default
-
-        switch (info.state) {
-            case 'R': color = 1; break; // Running
-            case 'S': color = 2; break; // Sleeping
-            case 'D': color = 3; break; // Disk sleep
-            case 'Z': color = 4; break; // Zombie
-            case 'T': color = 5; break; // Stopped
-            default:  color = 6; break;
-        }
-
-        serveurs *liste_serveurs = lirefichier(chemin_conf());
-	const char *adresse_affichee = "local";
-
-	if (liste_serveurs != NULL) {
-    		if (strcmp(liste_serveurs->type, "local") == 0) {
-        		adresse_affichee = "local";
-    		} else {
-        		adresse_affichee = liste_serveurs->addr;
-    		}
+	const char *cmd = "ps -eo pid=,user=,ppid=,stat=,pcpu=,pmem=,comm= --sort pid";
+	char *output = telnet_exec(client, cmd);
+	if(!output || strlen(output) < 5){
+		mvprintw(0, 0, "Impossible de récupérer la liste des processus");
+		return -1;
 	}
 
-        mvprintw(row, 0,
-                 "%6d %-8.8s %-15.15s %1c %7.2f %7.2f %6d %6d %-30.30s %10.1f",
-                 info.pid,
-                 info.user,
-		 adresse_affichee,
-                 info.state,
-                 info.cpu_percent,
-                 info.mem_percent,
-                 info.ppid,
-                 (int)info.gid,
-                 info.name,
-                 info.uptime_seconds);
+	char *ligne = strtok(output, "\n");
 
-        attroff(COLOR_PAIR(color));
+	while (ligne && row < LINES - 2){
 
-        row++;
-    }
+		proc_info_t info;
+		memset(&info, 0, sizeof(info));
 
-    closedir(dir);
+		int p = sscanf(ligne, "%d %63s %d %c %lf %lf %255s",
+				&info.pid,
+				info.user,
+				&info.state,
+				&info.cpu_percent,
+				&info.mem_percent,
+				info.name
+			      );
+		if (p < 7){
+			ligne = strtok(NULL, "\n");
+			continue;
+		}
 
-    return last_pid;
+		if (info.pid < start_pid){
+			ligne = strtok(NULL, "\n");
+			continue;
+		}
+
+		last_pid = info.pid;
+
+		// Sélection de la couleur selon l’état
+		int color = 6; // default
+
+		switch (info.state) {
+			case 'R': color = 1; break; // Running
+			case 'S': color = 2; break; // Sleeping
+			case 'D': color = 3; break; // Disk sleep
+			case 'Z': color = 4; break; // Zombie
+			case 'T': color = 5; break; // Stopped
+			default:  color = 6; break;
+		}
+
+		mvprintw(row, 0, "%6d %-8.8s %-15.15s %1c %7.2f %7.2f %6d %6d %-30.30s",
+				info.pid,
+				info.user,
+				"               ",
+				info.state,
+				info.cpu_percent,
+				info.mem_percent,
+				info.ppid,
+				0,
+				info.name
+			);
+		attroff(COLOR_PAIR(color));
+
+		row++;
+		ligne = strtok(NULL, "\n");
+	}
+
+	return last_pid;
+}
+// ====================== TABLEAU DES PROCESS ======================
+static pid_t draw_process_table(pid_t start_pid) {
+	DIR *dir = opendir("/proc");
+	struct dirent *entry;
+	int row = 2;
+	pid_t last_pid = -1;
+
+	if (!dir) {
+		mvprintw(0, 0, "Impossible d'ouvrir /proc");
+		return last_pid;
+	}
+
+	while ((entry = readdir(dir)) != NULL && row < LINES - 2) {
+
+		if (!isdigit((unsigned char)entry->d_name[0]))
+			continue;
+
+		pid_t pid = atoi(entry->d_name);
+		if (pid < start_pid)
+			continue;
+		proc_info_t info = get_process_info(pid);
+
+		if (info.pid == -1)
+			continue;
+
+		last_pid = info.pid;
+
+		// Sélection de la couleur selon l’état
+		int color = 6; // default
+
+		switch (info.state) {
+			case 'R': color = 1; break; // Running
+			case 'S': color = 2; break; // Sleeping
+			case 'D': color = 3; break; // Disk sleep
+			case 'Z': color = 4; break; // Zombie
+			case 'T': color = 5; break; // Stopped
+			default:  color = 6; break;
+		}
+
+		serveurs *liste_serveurs = lirefichier(chemin_conf());
+		const char *adresse_affichee = "local";
+
+		if (liste_serveurs != NULL) {
+			if (strcmp(liste_serveurs->type, "local") == 0) {
+				adresse_affichee = "local";
+			} else {
+				adresse_affichee = liste_serveurs->addr;
+			}
+		}
+
+		mvprintw(row, 0,
+				"%6d %-8.8s %-15.15s %1c %7.2f %7.2f %6d %6d %-30.30s %10.1f",
+				info.pid,
+				info.user,
+				adresse_affichee,
+				info.state,
+				info.cpu_percent,
+				info.mem_percent,
+				info.ppid,
+				(int)info.gid,
+				info.name,
+				info.uptime_seconds);
+
+		attroff(COLOR_PAIR(color));
+
+		row++;
+	}
+
+	closedir(dir);
+
+	return last_pid;
 }
 
 
 // ====================== RECHERCHE PID PRECEDE ======================
 pid_t find_previous_page_start(pid_t start_pid, int max_lines) {
-    pid_t current_start = start_pid;
-    for (int i = 0; i < max_lines; i++) {
-        DIR *dir = opendir("/proc");
-        if (!dir)
-            return 1;
+	pid_t current_start = start_pid;
+	for (int i = 0; i < max_lines; i++) {
+		DIR *dir = opendir("/proc");
+		if (!dir)
+			return 1;
 
-        struct dirent *entry;
-        pid_t ancien_pid = 1;
-        while ((entry = readdir(dir)) != NULL) {
-            if (!isdigit((unsigned char)entry->d_name[0]))
-                continue;
+		struct dirent *entry;
+		pid_t ancien_pid = 1;
+		while ((entry = readdir(dir)) != NULL) {
+			if (!isdigit((unsigned char)entry->d_name[0]))
+				continue;
 
-            pid_t pid = atoi(entry->d_name);
-            if (pid >= current_start)
-                continue;
+			pid_t pid = atoi(entry->d_name);
+			if (pid >= current_start)
+				continue;
 
-            proc_info_t info = get_process_info(pid);
-            if (info.pid == -1)
-                continue;
+			proc_info_t info = get_process_info(pid);
+			if (info.pid == -1)
+				continue;
 
-            if (info.pid > ancien_pid)
-                ancien_pid = info.pid;
-        }
-        closedir(dir);
-        if (ancien_pid == 1)
-            return 1;
-		
-        current_start = ancien_pid;
-    }
-    return current_start;
+			if (info.pid > ancien_pid)
+				ancien_pid = info.pid;
+		}
+		closedir(dir);
+		if (ancien_pid == 1)
+			return 1;
+
+		current_start = ancien_pid;
+	}
+	return current_start;
 }
 
 
 
 // ====================== Recherche de processus ======================
 void rechercher_processus(const char *nom) {
-    DIR *dir;
-    struct dirent *entry;
-    int row = 4;
+	DIR *dir;
+	struct dirent *entry;
+	int row = 4;
 
-    clear();
+	clear();
 
-    mvprintw(1, 2, "Resultats de recherche pour : \"%s\"", nom);
-    mvprintw(2, 2,
-             " PID   USER     ADRESSE         S   CPU%%   MEM%%  PPID   GID  NAME                          UPTIME");
-    mvprintw(3, 2,
-             "-----------------------------------------------------------------------------------------------");
+	mvprintw(1, 2, "Resultats de recherche pour : \"%s\"", nom);
+	mvprintw(2, 2,
+			" PID   USER     ADRESSE         S   CPU%%   MEM%%  PPID   GID  NAME                          UPTIME");
+	mvprintw(3, 2,
+			"-----------------------------------------------------------------------------------------------");
 
-    dir = opendir("/proc");
-    if (!dir) {
-        mvprintw(row, 2, "Impossible d'ouvrir /proc");
-        refresh();
-        getch();
-        return;
-    }
+	dir = opendir("/proc");
+	if (!dir) {
+		mvprintw(row, 2, "Impossible d'ouvrir /proc");
+		refresh();
+		getch();
+		return;
+	}
 
-    while ((entry = readdir(dir)) != NULL && row < LINES - 2) {
+	while ((entry = readdir(dir)) != NULL && row < LINES - 2) {
 
-        if (!isdigit((unsigned char)entry->d_name[0]))
-            continue;
+		if (!isdigit((unsigned char)entry->d_name[0]))
+			continue;
 
-        pid_t pid = atoi(entry->d_name);
+		pid_t pid = atoi(entry->d_name);
 
-        /* Récupération rapide du nom pour le filtre */
-        char path[256];
-        char pname[64] = "?";
-        FILE *f;
+		/* Récupération rapide du nom pour le filtre */
+		char path[256];
+		char pname[64] = "?";
+		FILE *f;
 
-        snprintf(path, sizeof(path), "/proc/%d/comm", pid);
-        f = fopen(path, "r");
-        if (f) {
-            fgets(pname, sizeof(pname), f);
-            pname[strcspn(pname, "\n")] = '\0';
-            fclose(f);
-        }
+		snprintf(path, sizeof(path), "/proc/%d/comm", pid);
+		f = fopen(path, "r");
+		if (f) {
+			fgets(pname, sizeof(pname), f);
+			pname[strcspn(pname, "\n")] = '\0';
+			fclose(f);
+		}
 
-        /* Filtrage par nom */
-        if (!strstr(pname, nom))
-            continue;
+		/* Filtrage par nom */
+		if (!strstr(pname, nom))
+			continue;
 
-        /* Infos complètes du processus */
-        proc_info_t info = get_process_info(pid);
-        if (info.pid == -1)
-            continue;
+		/* Infos complètes du processus */
+		proc_info_t info = get_process_info(pid);
+		if (info.pid == -1)
+			continue;
 
-        /* Dans le contexte du projet : serveur courant */
-        const char *adresse_affichee = "local";
+		/* Dans le contexte du projet : serveur courant */
+		const char *adresse_affichee = "local";
 
-        mvprintw(row++, 0,
-                 "%6d %-8.8s %-15.15s %1c %7.2f %7.2f %6d %6d %-30.30s %10.1f",
-                 info.pid,
-                 info.user,
-                 adresse_affichee,
-                 info.state,
-                 info.cpu_percent,
-                 info.mem_percent,
-                 info.ppid,
-                 (int)info.gid,
-                 info.name,
-                 info.uptime_seconds);
-    }
+		mvprintw(row++, 0,
+				"%6d %-8.8s %-15.15s %1c %7.2f %7.2f %6d %6d %-30.30s %10.1f",
+				info.pid,
+				info.user,
+				adresse_affichee,
+				info.state,
+				info.cpu_percent,
+				info.mem_percent,
+				info.ppid,
+				(int)info.gid,
+				info.name,
+				info.uptime_seconds);
+	}
 
-    closedir(dir);
+	closedir(dir);
 
-    mvprintw(LINES - 1, 2, "Appuyez sur une touche pour revenir");
-    refresh();
-    getch();
+	mvprintw(LINES - 1, 2, "Appuyez sur une touche pour revenir");
+	refresh();
+	getch();
 }
 
 // ====================== demander processus ======================
 static proc_info_t demander_processus(void) {
-    proc_info_t p;
-    char buf[32];
+	proc_info_t p;
+	char buf[32];
 
-    /* Initialisation propre de la structure */
-    memset(&p, 0, sizeof(proc_info_t));
-    p.pid = -1;
+	/* Initialisation propre de la structure */
+	memset(&p, 0, sizeof(proc_info_t));
+	p.pid = -1;
 
-    nodelay(stdscr, FALSE);
-    echo();
-    curs_set(1);
+	nodelay(stdscr, FALSE);
+	echo();
+	curs_set(1);
 
-    clear();
-    mvprintw(2, 2, "Entrer le PID du processus : ");
-    refresh();
+	clear();
+	mvprintw(2, 2, "Entrer le PID du processus : ");
+	refresh();
 
-    getnstr(buf, sizeof(buf) - 1);
+	getnstr(buf, sizeof(buf) - 1);
 
-    noecho();
-    curs_set(0);
-    nodelay(stdscr, TRUE);
+	noecho();
+	curs_set(0);
+	nodelay(stdscr, TRUE);
 
-    p.pid = (pid_t)atoi(buf);
+	p.pid = (pid_t)atoi(buf);
 
-    return p;
+	return p;
 }
 
 
 // ====================== BOUCLE PRINCIPALE TUI ======================
 
-void run_tui(void) {
+void run_tui(parameter_t *params) {
     initscr();
     cbreak();
     noecho();
@@ -440,7 +511,7 @@ void run_tui(void) {
 
         // Ligne de bas d'écran (rappel des touches principales)
         mvprintw(LINES - 1, 0,
-                 "F1/h/?: aide  |  F2/F3: defiler  |  F4: recherche  |  F5: pause  |  F6: arret  |  F7: kill  |  F8: redemarer  |  F10/q: quitter");
+                 "F1/h/?: aide  |  F2/F3: defiler  |  F4: recherche  |  F5: pause  |  F6: arret  |  F7: kill  |  F8: redemarer  |  F9: changer serveur  |  F10/q: quitter");
 
         refresh();
         usleep(400000); // 0,4 s

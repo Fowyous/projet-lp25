@@ -3,7 +3,7 @@ CC = gcc
 
 # Flags
 CFLAGS = -Wall -g
-LDFLAGS = -lncurses
+LDFLAGS = -lncurses -lssh -ltelnet
 
 # Directories
 SRC_DIR = .
@@ -14,7 +14,7 @@ OBJ_DIR = obj
 TARGET = $(BIN_DIR)/main
 
 # Source files
-SRCS = main.c process.c ui.c lecture_fichier.c
+SRCS = main.c process.c ui.c lecture_fichier.c network.c
 # Object files
 OBJS = $(patsubst $(SRC_DIR)/%.c, $(OBJ_DIR)/%.o, $(SRCS))
 

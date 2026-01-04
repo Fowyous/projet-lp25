@@ -44,6 +44,8 @@ typedef struct {
     size_t buffer_len;
 } telnet_client_t;
 */
+char telnet_last_output[4096]; 
+volatile int telnet_output_ready = 0;
 
 typedef struct {
     int sockfd;

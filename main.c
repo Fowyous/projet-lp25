@@ -112,12 +112,11 @@ int main(int argc, char *argv[]) {
 				break;
 		}
 	}
-	if (nb_options == 0){
-		run_tui();
-	}
+
 	if (params[REMOTE_SERV].parameter_value.str_param != ""){//quand and remote server est spécifié
 		//a faire
 		//Si les options -u et -p ne sont pas specifiés dans la commande, alors il faudra les demandé interactivement lors de l'exécution.
 	}
+	run_tui(params);
 	return 0;
 }
