@@ -1,50 +1,191 @@
 #include "network.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <arpa/inet.h>
 #include <sys/socket.h>
-#include <netdb.h>
 
-static const telnet_telopt_t telopts[] = {
+/* =========================================================
+ * SSH
+ * ========================================================= */
+
+ssh_session network_ssh_connect(
+    const char *host,
+    int port,
+    const char *user,
+    const char *password
+) {
+    ssh_session session = ssh_new();
+    if (!session)
+        return NULL;
+
+    ssh_options_set(session, SSH_OPTIONS_HOST, host);
+    ssh_options_set(session, SSH_OPTIONS_PORT, &port);
+    ssh_options_set(session, SSH_OPTIONS_USER, user);
+
+    if (ssh_connect(session) != SSH_OK) {
+        fprintf(stderr, "SSH connect error: %s\n",
+                ssh_get_error(session));
+        ssh_free(session);
+        return NULL;
+    }
+
+    if (ssh_userauth_password(session, NULL, password)
+        != SSH_AUTH_SUCCESS) {
+        fprintf(stderr, "SSH auth error: %s\n",
+                ssh_get_error(session));
+        ssh_disconnect(session);
+        ssh_free(session);
+        return NULL;
+    }
+
+    return session;
+}
+
+int network_ssh_exec(
+    ssh_session session,
+    const char *command,
+    char *output,
+    size_t output_size
+) {
+    if (!session || !command || !output)
+        return -1;
+
+    ssh_channel channel = ssh_channel_new(session);
+    if (!channel)
+        return -1;
+
+    if (ssh_channel_open_session(channel) != SSH_OK)
+        goto error;
+
+    if (ssh_channel_request_exec(channel, command) != SSH_OK)
+        goto error;
+
+    int total = 0;
+    int nbytes;
+
+    while ((nbytes = ssh_channel_read(
+                channel,
+                output + total,
+                output_size - total - 1,
+                0)) > 0) {
+        total += nbytes;
+    }
+
+    output[total] = '\0';
+
+    ssh_channel_send_eof(channel);
+    ssh_channel_close(channel);
+    ssh_channel_free(channel);
+
+    return total;
+
+error:
+    ssh_channel_close(channel);
+    ssh_channel_free(channel);
+    return -1;
+}
+
+void network_ssh_disconnect(ssh_session session) {
+    if (!session)
+        return;
+
+    ssh_disconnect(session);
+    ssh_free(session);
+}
+
+/* =========================================================
+ * TELNET
+ * ========================================================= */
+
+static const telnet_telopt_t telnet_options[] = {
     { TELNET_TELOPT_ECHO, TELNET_WILL, TELNET_DO },
     { TELNET_TELOPT_SGA,  TELNET_WILL, TELNET_DO },
     { -1, 0, 0 }
 };
 
-void telnet_event_handler(telnet_t *telnet, telnet_event_t *ev, void *user_data) {
-    (void)telnet;
-    if (ev->type == TELNET_EV_DATA) {
-        write(STDOUT_FILENO, ev->data.buffer, ev->data.size);
+void network_telnet_event_handler(
+    telnet_t *telnet,
+    telnet_event_t *event,
+    void *user_data
+) {
+    telnet_client_t *client = (telnet_client_t *)user_data;
+
+    if (event->type == TELNET_EV_DATA) {
+        size_t copy = event->data.size;
+
+        if (client->buffer_len + copy >= NETWORK_BUFFER_SIZE)
+            copy = NETWORK_BUFFER_SIZE - client->buffer_len - 1;
+
+        memcpy(client->buffer + client->buffer_len,
+               event->data.buffer,
+               copy);
+
+        client->buffer_len += copy;
+        client->buffer[client->buffer_len] = '\0';
     }
 }
 
-telnet_client_t *telnet_connect(const char *host, int port) {
-    struct sockaddr_in addr;
-    int sockfd = socket(AF_INET, SOCK_STREAM, 0);
+telnet_client_t *network_telnet_connect(const char *host, int port) {
+    telnet_client_t *client = calloc(1, sizeof(telnet_client_t));
+    if (!client)
+        return NULL;
 
+    client->sockfd = socket(AF_INET, SOCK_STREAM, 0);
+    if (client->sockfd < 0)
+        goto error;
+
+    struct sockaddr_in addr;
     addr.sin_family = AF_INET;
     addr.sin_port = htons(port);
     inet_pton(AF_INET, host, &addr.sin_addr);
 
-    if (connect(sockfd, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
-        perror("telnet connect");
-        close(sockfd);
-        return NULL;
-    }
+    if (connect(client->sockfd,
+                (struct sockaddr *)&addr,
+                sizeof(addr)) < 0)
+        goto error;
 
-    telnet_client_t *client = malloc(sizeof(telnet_client_t));
-    client->sockfd = sockfd;
-    client->telnet = telnet_init(telopts, telnet_event_handler, 0, NULL);
+    client->telnet = telnet_init(
+        telnet_options,
+        network_telnet_event_handler,
+        0,
+        client
+    );
+
+    if (!client->telnet)
+        goto error;
 
     return client;
+
+error:
+    if (client->sockfd >= 0)
+        close(client->sockfd);
+    free(client);
+    return NULL;
 }
 
-void telnet_send_command(telnet_client_t *client, const char *command) {
+void network_telnet_send(telnet_client_t *client, const char *command) {
+    if (!client || !command)
+        return;
+
     telnet_send(client->telnet, command, strlen(command));
     telnet_send(client->telnet, "\n", 1);
+
+    char recvbuf[512];
+    ssize_t len;
+
+    while ((len = recv(client->sockfd, recvbuf,
+                       sizeof(recvbuf), MSG_DONTWAIT)) > 0) {
+        telnet_recv(client->telnet, recvbuf, len);
+    }
 }
 
-void telnet_disconnect(telnet_client_t *client) {
-    if (!client) return;
+void network_telnet_disconnect(telnet_client_t *client) {
+    if (!client)
+        return;
+
     telnet_free(client->telnet);
     close(client->sockfd);
     free(client);
 }
-

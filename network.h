@@ -2,45 +2,62 @@
 #define NETWORK_H
 
 #include <libssh/libssh.h>
-#include <libssh/callbacks.h>
 #include <libtelnet.h>
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
+#include <stddef.h>
+#include <sys/types.h>
 
-#define BUFFER_SIZE 4096
+#define NETWORK_BUFFER_SIZE 8192
 
-/* ===================== SSH ===================== */
+/* =========================================================
+ * SSH
+ * ========================================================= */
 
 // Connexion SSH
-//ssh_session ssh_connect(const char *host, int port, const char *user, const char *password);
+ssh_session network_ssh_connect(
+    const char *host,
+    int port,
+    const char *user,
+    const char *password
+);
 
-// Exécution d'une commande distante
-int ssh_execute_command(ssh_session session, const char *command, char *output, size_t out_size);
+// Exécuter une commande distante via SSH
+int network_ssh_exec(
+    ssh_session session,
+    const char *command,
+    char *output,
+    size_t output_size
+);
 
-// Fermeture session SSH
-void ssh_disconnect(ssh_session session);
+// Fermer la connexion SSH
+void network_ssh_disconnect(ssh_session session);
 
-/* ===================== TELNET ===================== */
 
-// Structure Telnet
+/* =========================================================
+ * TELNET
+ * ========================================================= */
+
 typedef struct {
-    telnet_t *telnet;
     int sockfd;
+    telnet_t *telnet;
+    char buffer[NETWORK_BUFFER_SIZE];
+    size_t buffer_len;
 } telnet_client_t;
 
 // Connexion Telnet
-telnet_client_t *telnet_connect(const char *host, int port);
+telnet_client_t *network_telnet_connect(const char *host, int port);
 
-// Envoi commande Telnet
-void telnet_send_command(telnet_client_t *client, const char *command);
+// Envoi d'une commande Telnet
+void network_telnet_send(telnet_client_t *client, const char *command);
 
-// Réception Telnet (callback)
-void telnet_event_handler(telnet_t *telnet, telnet_event_t *ev, void *user_data);
+// Traitement des données reçues Telnet
+void network_telnet_event_handler(
+    telnet_t *telnet,
+    telnet_event_t *event,
+    void *user_data
+);
 
 // Fermeture Telnet
-void telnet_disconnect(telnet_client_t *client);
+void network_telnet_disconnect(telnet_client_t *client);
 
 #endif
