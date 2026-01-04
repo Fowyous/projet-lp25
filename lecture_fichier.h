@@ -1,3 +1,4 @@
+#include <stdbool.h>
 typedef struct serveurs{
 	char *nom_serveur;
 	char addr[15];
@@ -15,5 +16,5 @@ void free_serveurs (serveurs *tete); // il faut toujours appeler cette fonction 
 
 serveurs *creer_serveur(char *ligne);
 bool verif_permissions(const char *chemin); // retourve vrai si les permissions sont rw-------
-const char *chemin_conf(); // cherche le chemin de config dans le repertoire courant
+const char *chemin_conf(); // cherche le chemin de config dan3s le repertoire courant
 
