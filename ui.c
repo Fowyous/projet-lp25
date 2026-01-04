@@ -196,7 +196,7 @@ static pid_t draw_process_table(pid_t start_pid) {
 
 // ====================== RECHERCHE PID PRECEDE ======================
 pid_t find_previous_page_start(pid_t start_pid, int max_lines){
-    DIR dir = opendir("/proc");
+    DIR *dir = opendir("/proc");
     if (!dir)
         return 1;
 
