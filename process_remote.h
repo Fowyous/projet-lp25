@@ -22,6 +22,8 @@ int redemarrer_processus_distant_ssh(ssh_session session, pid_t pid);
 
 /* ================= TELNET ================= */
 
+proc_info_t get_process_info_telnet(telnet_client_t *client, pid_t pid);
+
 int pause_processus_distant_telnet(telnet_client_t *client, pid_t pid);
 int reprise_processus_distant_telnet(telnet_client_t *client, pid_t pid);
 int arret_processus_distant_telnet(telnet_client_t *client, pid_t pid);

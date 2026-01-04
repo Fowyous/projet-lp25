@@ -172,6 +172,18 @@ telnet_client_t *telnet_connect(const char *ip, int port) {
     return client;
 }
 
+char *telnet_exec(telnet_client_t *client, const char *cmd) {
+    memset(telnet_last_output, 0, sizeof(telnet_last_output));
+    telnet_output_ready = 0;
+
+    telnet_send(client->telnet, cmd, strlen(cmd));
+    telnet_send(client->telnet, "\n", 1);
+
+    // Wait for server output (simple delay)
+    usleep(200000); // 200 ms
+
+    return telnet_last_output;
+}
 
 
 /*

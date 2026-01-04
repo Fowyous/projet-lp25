@@ -1,3 +1,4 @@
+#include "process.h"
 #include "process_remote.h"
 #include <stdio.h>
 #include <string.h>
@@ -51,6 +52,32 @@ int redemarrer_processus_distant_ssh(ssh_session session, pid_t pid) {
  * TELNET
  * ========================================================= */
 
+proc_info_t get_process_info_telnet(telnet_client_t *client, pid_t pid){
+	proc_info_t info;
+	memset(&info, 0, sizeof(info));
+	info.pid = pid;
+
+	char cmd[128];
+	snprintf(cmd, sizeof(cmd), "ps -p %d -o pid=,user=,ppid=,stat=,etime=,pcpu=,pmem=,comm=", pid);
+
+	char *output = telnet_exec(client, cmd);
+
+	if (strlen(output) < 2){
+		info.pid = -1;
+		return info;
+	}
+ 
+	sscanf(output, "%d %63s %d %c %63s %lf %lf %255s",
+			&info.pid, 
+			info.user, 
+			&info.ppid, 
+			&info.state, 
+			(char[64]){0},//e
+			&info.cpu_percent, 
+			&info.mem_percent, 
+				info.name ); 
+	return info;
+}
 static int exec_kill_telnet(telnet_client_t *client, int sig, pid_t pid) {
     char cmd[64];
     snprintf(cmd, sizeof(cmd), "kill -%d %d\n", sig, pid);
