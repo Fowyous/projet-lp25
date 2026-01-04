@@ -355,9 +355,9 @@ void run_tui(void) {
 
         clear();
 
-        // En-tête alignée avec les mêmes largeurs que le tableau
+       // En-tête alignée avec les mêmes largeurs que le tableau
         mvprintw(0, 0,
-                 " PID    USER     S    CPU%%    MEM%%   PPID   GID       NAME                          UPTIME");
+                 " PID    USER   ADRESSE SERVEUR   S    CPU%%    MEM%%   PPID   GID       NAME                          UPTIME");
         mvhline(1, 0, '-', COLS);
 
         last_pid = draw_process_table(start_pid);
