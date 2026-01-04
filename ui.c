@@ -11,7 +11,7 @@
 #include <signal.h>
 #include <errno.h>
 #include <sys/resource.h>
-
+#include "lecture_fichier.h"
 #include "ui.h"
 #include "process.h"
 
@@ -120,12 +120,7 @@ static void show_help_window(void) {
     nodelay(stdscr, TRUE);
 }
 
-
-
-
-
 // ====================== TABLEAU DES PROCESS ======================
-// (copie de ton code existant)
 static pid_t draw_process_table(pid_t start_pid) {
     DIR *dir = opendir("/proc");
     struct dirent *entry;
@@ -164,12 +159,22 @@ static pid_t draw_process_table(pid_t start_pid) {
             default:  color = 6; break;
         }
 
-        attron(COLOR_PAIR(color));
+        serveurs *liste_serveurs = lirefichier(chemin_conf());
+	const char *adresse_affichee = "local";
+
+	if (liste_serveurs != NULL) {
+    		if (strcmp(liste_serveurs->type, "local") == 0) {
+        		adresse_affichee = "local";
+    		} else {
+        		adresse_affichee = liste_serveurs->addr;
+    		}
+	}
 
         mvprintw(row, 0,
-                 "%6d %-8.8s %1c %7.2f %7.2f %6d %6d %-30.30s %10.1f",
+                 "%6d %-8.8s %-15.15s %1c %7.2f %7.2f %6d %6d %-30.30s %10.1f",
                  info.pid,
                  info.user,
+		 adresse_affichee,
                  info.state,
                  info.cpu_percent,
                  info.mem_percent,
