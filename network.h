@@ -55,6 +55,8 @@ void *reader_thread(void *arg);
 
 telnet_client_t *telnet_connect(const char *ip, int port);
 
+
+
 /*
 // Connexion Telnet
 telnet_client_t *network_telnet_connect(const char *host, int port);

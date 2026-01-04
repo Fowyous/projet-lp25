@@ -53,8 +53,8 @@ int redemarrer_processus_distant_ssh(ssh_session session, pid_t pid) {
 
 static int exec_kill_telnet(telnet_client_t *client, int sig, pid_t pid) {
     char cmd[64];
-    snprintf(cmd, sizeof(cmd), "kill -%d %d", sig, pid);
-    network_telnet_send(client, cmd);
+    snprintf(cmd, sizeof(cmd), "kill -%d %d\n", sig, pid);
+    telnet_send(client->telnet, cmd, strlen(cmd));
     return 0;
 }
 
