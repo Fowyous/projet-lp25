@@ -193,6 +193,44 @@ static pid_t draw_process_table(pid_t start_pid) {
     return last_pid;
 }
 
+
+// ====================== RECHERCHE PID PRECEDE ======================
+pid_t find_previous_page_start(pid_t start_pid) {
+    int max_lines = LINES - 4;
+    DIR *dir = opendir("/proc");
+    if (!dir)
+        return 1;
+
+    struct dirent *entry;
+    pid_t ancien_pid = 1;
+    int count = 0;
+
+    // On cherche tous les PID < start_pid
+    while ((entry = readdir(dir)) != NULL) {
+
+        if (!isdigit((unsigned char)entry->d_name[0]))
+            continue;
+
+        pid_t pid = atoi(entry->d_name);
+        if (pid >= start_pid)
+            continue;
+
+        proc_info_t info = get_process_info(pid);
+        if (info.pid == -1)
+            continue;
+
+        if (count == 0)
+            ancien_pid = info.pid;
+
+        count++;
+        if (count >= max_lines)
+            break;
+    }
+    closedir(dir);
+    return ancien_pid;
+}
+
+
 // ====================== Recherche de processus ======================
 void rechercher_processus(const char *nom) {
     DIR *dir;
@@ -335,11 +373,8 @@ void run_tui(void) {
 		}
 
         // F3 : onglet précédent
-        else if (ch == KEY_F(3)) {					/////a modif code bancal
-        	if (start_pid - LINES + 4 < 1)
-                start_pid = 1;
-            else
-                start_pid = start_pid - (last_pid - start_pid + 1);
+        else if (ch == KEY_F(3)) {
+        	start_pid = find_previous_page_start(start_pid);
 		}
 
         // F4 : recherche
