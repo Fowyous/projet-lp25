@@ -204,14 +204,15 @@ static void show_help_window(void) {
 
 // ====================== TABLEAU DES PROCESS ======================
 // (copie de ton code existant)
-static void draw_process_table(void) {
+static pid_t draw_process_table(pid_t start_pid) {
     DIR *dir = opendir("/proc");
     struct dirent *entry;
     int row = 2;
+    pid_t last_pid = -1;
 
     if (!dir) {
         mvprintw(0, 0, "Impossible d'ouvrir /proc");
-        return;
+        return last_pid;
     }
 
     while ((entry = readdir(dir)) != NULL && row < LINES - 2) {
@@ -220,10 +221,14 @@ static void draw_process_table(void) {
             continue;
 
         pid_t pid = atoi(entry->d_name);
+	if (pid < start_pid)
+		continue;
         proc_info_t info = get_process_info(pid);
 
         if (info.pid == -1)
             continue;
+
+	last_pid = info.pid;
 
         // Sélection de la couleur selon l’état
         int color = 6; // default
@@ -257,6 +262,8 @@ static void draw_process_table(void) {
     }
 
     closedir(dir);
+
+    return last_pid;
 }
 
 // ====================== Recherche de processus ======================
@@ -349,6 +356,9 @@ void run_tui(void) {
     flushinp();
 
     int ch;
+    pid_t f3start_pid = 1;//le start pid de la fenetre precedente
+    pid_t start_pid = 1;
+    pid_t last_pid = -1;
 
     while (1) {
         ch = getch();
@@ -366,13 +376,14 @@ void run_tui(void) {
 
         // F2 : onglet suivant
         else if (ch == KEY_F(2)) {
-            //////a modif pour defiler les fenetre /////////////////////////////////////////////////////////////////////////////
-        }
+		f3start_pid = start_pid;
+        	start_pid = last_pid;
+	}
 
         // F3 : onglet précédent
         else if (ch == KEY_F(3)) {
-            //////a modif pour defiler les fenetre /////////////////////////////////////////////////////////////////////////////
-        }
+        	//start_pid = 
+	}
 
         // F4 : recherche
         else if (ch == KEY_F(4)) {
@@ -422,7 +433,7 @@ void run_tui(void) {
                  " PID    USER     S    CPU%%    MEM%%   PPID   GID       NAME                          UPTIME");
         mvhline(1, 0, '-', COLS);
 
-        draw_process_table();
+        last_pid = draw_process_table(start_pid);
 
         // Ligne de bas d'écran (rappel des touches principales)
         mvprintw(LINES - 1, 0,
