@@ -313,9 +313,18 @@ void run_tui(void) {
 	}
 
         // F4 : recherche
-        else if (ch == KEY_F(4)) {
-            //rechercher_processus();                                                         ///a verif
-        }  
+	else if (ch == KEY_F(4)) {
+    	char nom[64];
+
+    	echo();
+    	mvprintw(LINES - 2, 2, "Nom du processus a rechercher : ");
+    	getnstr(nom, sizeof(nom) - 1);
+    	noecho();
+
+    	if (strlen(nom) > 0) {
+        	rechercher_processus(nom);
+    		}
+	} 
 
         // F5 : pause
         else if (ch == KEY_F(5)) {
