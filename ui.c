@@ -328,18 +328,23 @@ void run_tui(void) {
 
         // F2 : onglet suivant
         else if (ch == KEY_F(2)) {
-		f3start_pid = start_pid;
-        	start_pid = last_pid;
-	}
+			if (last_pid - start_pid < LINES - 4)
+                start_pid = 1;          //remise a 1 si depassement
+            else
+                start_pid = last_pid + 1;
+		}
 
         // F3 : onglet précédent
-        else if (ch == KEY_F(3)) {
-        	//start_pid = 
-	}
+        else if (ch == KEY_F(3)) {					/////a modif code bancal
+        	if (start_pid - LINES + 4 < 1)
+                start_pid = 1;
+            else
+                start_pid = start_pid - (last_pid - start_pid + 1);
+		}
 
         // F4 : recherche
-	else if (ch == KEY_F(4)) {
-		nodelay(stdscr, FALSE);
+		else if (ch == KEY_F(4)) {
+			nodelay(stdscr, FALSE);
     		char nom[64];
 
     		echo();
@@ -351,7 +356,7 @@ void run_tui(void) {
         		rechercher_processus(nom);
     		}
 		nodelay(stdscr, FALSE);
-	}
+		}
 
         // F5 : pause
         else if (ch == KEY_F(5)) {
