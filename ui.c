@@ -195,18 +195,16 @@ static pid_t draw_process_table(pid_t start_pid) {
 
 
 // ====================== RECHERCHE PID PRECEDE ======================
-pid_t find_previous_page_start(pid_t start_pid){
-	int max_lines = LINES - 4;
-    DIR *dir = opendir("/proc");
+pid_t find_previous_page_start(pid_t start_pid, int max_lines){
+    DIR dir = opendir("/proc");
     if (!dir)
         return 1;
 
-    struct dirent *entry;
-    pid_t pids[4096];
+    struct dirententry;
+    pid_t ancien_pid = 1;
     int count = 0;
 
     while ((entry = readdir(dir)) != NULL) {
-
         if (!isdigit((unsigned char)entry->d_name[0]))
             continue;
 
@@ -218,25 +216,15 @@ pid_t find_previous_page_start(pid_t start_pid){
         if (info.pid == -1)
             continue;
 
-        pids[count++] = pid;
+        if (info.pid > ancien_pid)
+            ancien_pid = info.pid;
+
+        count++;
+        if (count >= max_lines)
+            break;
     }
     closedir(dir);
-    if (count == 0)
-        return 1;
-
-    qsort(pids, count, sizeof(pid_t), 
-        [](const void *a, const void *b) {
-            pid_t pa = *(pid_t*)a;
-            pid_t pb = *(pid_t*)b;
-            return (pa > pb) - (pa < pb);
-        }
-    );
-
-    if (count <= max_lines)
-        return 1;
-
-    int index = count - max_lines;
-    return pids[index];
+    return ancien_pid;
 }
 
 
@@ -384,8 +372,9 @@ void run_tui(void) {
 
         // F3 : onglet précédent
         else if (ch == KEY_F(3)) {
-        	start_pid = find_previous_page_start(start_pid);
-		}
+            start_pid = find_previous_page_start(start_pid, LINES - 4);
+        }
+
 
         // F4 : recherche
 		else if (ch == KEY_F(4)) {
