@@ -14,6 +14,7 @@
 #include "lecture_fichier.h"
 #include "ui.h"
 #include "process.h"
+#include "process_remote.h"
 #include "network.h"
 #include <pthread.h>
 
