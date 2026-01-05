@@ -426,6 +426,30 @@ void run_tui(parameter_t *params) {
 	ce_serveur = serveur;
     }
 
+    else if (params[REMOTE_SERV].parameter_value.str_param[0] != '\0'){
+	char val[256];
+
+	if (params[CONNECTION_TYPE].parameter_value.connection_param == UNDEFINED){
+		params[CONNECTION_TYPE].parameter_value.connection_param = TELNET;
+	}
+	short port = params[PORT].parameter_value.int_param;
+	char *protocol = (params[CONNECTION_TYPE].parameter_value.connection_param == TELNET) ? "telnet" : "ssh";
+	if (port == -1 && (strcmp(protocol, "telnet") == 0)){
+		port = 23;
+	}
+	else if (port == -1){// et protocl == ssh
+		port = 22;
+	}
+	sprintf(val, "%s:%s:%d:%s:%s:%s", " ", 
+			params[REMOTE_SERV].parameter_value.str_param,
+			port,
+			params[USERNAME].parameter_value.str_param,
+			params[PASSWORD].parameter_value.str_param,
+			protocol);
+	serveur = creer_serveur(val);
+	ce_serveur = serveur;
+    }
+
     int ch;
     pid_t f3start_pid = 1;//le start pid de la fenetre precedente
     pid_t start_pid = 1;
