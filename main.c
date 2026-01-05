@@ -43,16 +43,17 @@ int main(int argc, char *argv[]) {
 	//pour l'utiliser il faut faire param[nom du parametre].parameter_value.type
 	//par example pour acceder a la valeure du dry run il faut faire params[DRY_RUN].parameter_value.flag_param
 	parameter_t params[] = {
-		{.parameter_type=DRY_RUN, .parameter_value.flag_param=false},
-                {.parameter_type=REMOTE_CONF, .parameter_value.str_param = ""},
-                {.parameter_type=CONNECTION_TYPE, .parameter_value.connection_param=UNDEFINED},//je ne veux pas mettre SSH ou TELNET comme ca je peut distinguer si la personne a mis une valeure ou pas
-                {.parameter_type=PORT, .parameter_value.int_param=-1},
-                {.parameter_type=LOGIN, .parameter_value.str_param=""},
-                {.parameter_type=REMOTE_SERV, .parameter_value.str_param=""},
-                {.parameter_type=USERNAME, .parameter_value.str_param=""},
-                {.parameter_type=PASSWORD, .parameter_value.str_param=""},
-		{.parameter_type=ALL, .parameter_value.flag_param=false}
+	    {.parameter_type=DRY_RUN, .parameter_value.flag_param=false},
+	    {.parameter_type=REMOTE_CONF, .parameter_value.str_param = malloc(STR_MAX)},
+	    {.parameter_type=CONNECTION_TYPE, .parameter_value.connection_param=UNDEFINED},
+	    {.parameter_type=PORT, .parameter_value.int_param=-1},
+	    {.parameter_type=LOGIN, .parameter_value.str_param = malloc(STR_MAX)},
+	    {.parameter_type=REMOTE_SERV, .parameter_value.str_param = malloc(STR_MAX)},
+	    {.parameter_type=USERNAME, .parameter_value.str_param = malloc(STR_MAX)},
+	    {.parameter_type=PASSWORD, .parameter_value.str_param = malloc(STR_MAX)},
+	    {.parameter_type=ALL, .parameter_value.flag_param=false}
 	};
+
 	int nb_options = 0;
 	while((opt = getopt_long(argc, argv, "hdc::t:P:l:s:u:p:a", my_opts, 0)) != -1) {
 		switch (opt) {
