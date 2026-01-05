@@ -32,7 +32,7 @@ int main(int argc, char *argv[]) {
 		{.name="connection-type",.has_arg=1,.flag=0,.val='t'},
 		{.name="port",.has_arg=1,.flag=0,.val='P'},
  		{.name="login",.has_arg=1,.flag=0,.val='l'},
- 		{.name="remote-server",.has_arg=0,.flag=0,.val='s'},
+ 		{.name="remote-server",.has_arg=1,.flag=0,.val='s'},
 		{.name="username",.has_arg=1,.flag=0,.val='u'},
  		{.name="password",.has_arg=1,.flag=0,.val='p'},
  		{.name="all",.has_arg=1,.flag=0,.val='a'}, // faut utiliser avc -c et -s
@@ -104,7 +104,14 @@ int main(int argc, char *argv[]) {
 				nb_options += 1;
         			break;
 		    case 's': //remote-server
+			      	if (optarg == NULL || optind < argc && argv[optind][0] == '-') {
+                 		printf("Erreur : L'option -s (ou --remote-server) nécessite un argument.\n");
+                    		help(argv[0]);
+                    		exit(EXIT_FAILURE);
+				}
+
 				strncpy(params[REMOTE_SERV].parameter_value.str_param, optarg, STR_MAX - 1);
+				
 				nb_options += 1;
 			      break;
 			case 'u': //username
@@ -122,10 +129,21 @@ int main(int argc, char *argv[]) {
 		}
 	}
 
-	if (params[REMOTE_SERV].parameter_value.str_param != ""){//quand and remote server est spécifié
-		//a faire
-		//Si les options -u et -p ne sont pas specifiés dans la commande, alors il faudra les demandé interactivement lors de l'exécution.
-	}
+	if (params[REMOTE_SERV].parameter_value.str_param[0] != '\0' && !params[ALL].parameter_value.flag_param){
+		if (params[USERNAME].parameter_value.str_param[0] == '\0' || params[PASSWORD].parameter_value.str_param[0] == '\0') {
+            // Demande interactive pour le nom d'utilisateur et le mot de passe
+            		if (params[USERNAME].parameter_value.str_param[0] == '\0') {
+                		printf("Entrez le nom d'utilisateur : ");
+                		fgets(params[USERNAME].parameter_value.str_param, STR_MAX, stdin);
+                		params[USERNAME].parameter_value.str_param[strcspn(params[USERNAME].parameter_value.str_param, "\n")] = 0; // Remove newline
+            	}
+            	if (params[PASSWORD].parameter_value.str_param[0] == '\0') {
+                	printf("Entrez le mot de passe : ");
+                	fgets(params[PASSWORD].parameter_value.str_param, STR_MAX, stdin);
+                	params[PASSWORD].parameter_value.str_param[strcspn(params[PASSWORD].parameter_value.str_param, "\n")] = 0; // Remove newline
+            	}
+        }
+    }
 	run_tui(params);
 	return 0;
 }

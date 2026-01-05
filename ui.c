@@ -554,7 +554,13 @@ void run_tui(parameter_t *params) {
 		last_pid = draw_process_table(start_pid);
 	}
 	else {
-		last_pid = draw_process_table_telnet(client, start_pid);
+		if (strcmp(ce_serveur->type, "telnet") == 0){
+			last_pid = draw_process_table_telnet(client, start_pid);
+		}
+		else{
+		///////fonction ssh a implementer
+			printf(":(\n");
+		}
 
 	}
 
