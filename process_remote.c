@@ -57,7 +57,7 @@ proc_info_t get_process_info_telnet(telnet_client_t *client, pid_t pid){
 	memset(&info, 0, sizeof(info));
 	info.pid = pid;
 
-	char cmd[128];
+	char cmd[300];
 	snprintf(cmd, sizeof(cmd), "ps -p %d -o pid=,user=,ppid=,stat=,etime=,pcpu=,pmem=,comm=", pid);
 
 	char *output = telnet_exec(client, cmd);

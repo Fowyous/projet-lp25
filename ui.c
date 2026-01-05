@@ -442,7 +442,7 @@ void run_tui(parameter_t *params) {
 		addr = params[REMOTE_SERV].parameter_value.str_param; 
 	    }
 
-	char val[256];
+	char val[4096];
 
 	if (params[CONNECTION_TYPE].parameter_value.connection_param == UNDEFINED){
 		params[CONNECTION_TYPE].parameter_value.connection_param = TELNET;
