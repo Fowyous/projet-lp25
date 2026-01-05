@@ -519,67 +519,122 @@ void run_tui(parameter_t *params) {
 		}
 
         // F5 : pause
-        else if (ch == KEY_F(5)) {
-                proc_info_t proc = demander_processus();
-   	        if (proc.pid > 0) {
-                pause_processus(proc.pid);
-                proc.pid = 0;
-	        }                         
-        }
+		else if (ch == KEY_F(5)) {
+		    proc_info_t proc = demander_processus();
+		    if (proc.pid > 0) {
+		        if (current_server_type == LOCAL) { 
+		                pause_processus(proc.pid);
+		                proc.pid = 0;
+		        }
+		
+		        else if (current_server_type == REMOTE) {
+		            if (serveur->type == telnet ){
+		                pause_processus_distant_telnet(client, proc.pid);
+		                proc.pid = 0;
+		            }           
+		            
+		            else if (serveur->type == ssh ){
+		                pause_processus_distant_ssh(session, proc.pid);
+		                proc.pid = 0;
+		            }
+		        }
+		    }
+		}
 
         // F6 : arret
         else if (ch == KEY_F(6)) {
-            proc_info_t proc = demander_processus();
-    	    if (proc.pid > 0) {
-                arret_processus(proc.pid);
-                proc.pid = 0;
-	        }
-        }
+			proc_info_t proc = demander_processus();
+			if (proc.pid > 0) {
+				if (current_server_type == LOCAL) { 
+						arret_processus(proc.pid);
+						proc.pid = 0;
+				}
+		
+				else if (current_server_type == REMOTE) {
+					if (serveur->type == telnet ){
+						arret_processus_distant_telnet(client, proc.pid);
+						proc.pid = 0;
+					}           
+					
+					else if (serveur->type == ssh ){
+						arret_processus_distant_ssh(ssh_session session, pid_t pid)
+						proc.pid = 0;
+					}
+				}
+			}
+		}
 
         // F7 : kill
-        else if (ch == KEY_F(7)) {
-            proc_info_t proc = demander_processus();
-    	    if (proc.pid > 0) {
-                kill(proc.pid, SIGKILL);
-                proc.pid = 0;
-	        }      
-        }
+        /////// kill /////////////////////// a finir fonction non presente
+		else if (ch == KEY_F(7)) {
+		    proc_info_t proc = demander_processus();
+		    if (proc.pid > 0) {
+		        if (current_server_type == LOCAL) { 
+		                kill(proc.pid, SIGKILL);
+		                proc.pid = 0;
+		        }
+		
+		        else if (current_server_type == REMOTE) {
+		            if (serveur->type == telnet ){
+		                reprise_processus_distant_telnet(client, proc.pid);
+		                proc.pid = 0;
+		            }           
+		            
+		            else if (serveur->type == ssh ){
+		                reprise_processus_distant_ssh(session, proc.pid);
+		                proc.pid = 0;
+		            }
+		        }
+		    }
+		}
 
         // F8 : redémare
         else if (ch == KEY_F(8)) {
-            proc_info_t proc = demander_processus();
-	        if (proc.pid > 0) {
-                redemarrer_processus(proc.pid);
-                proc.pid = 0;
-	        }
-        }
-	else if (ch == KEY_F(9)){
-		if (ce_serveur != NULL){
-			if (current_server_type == REMOTE)
-				ce_serveur = suivant(ce_serveur);
-			
-			if (ce_serveur == NULL) { 
-				ce_serveur = serveur;
-				current_server_type = LOCAL;
-			}
-			else {
-				current_server_type = REMOTE;
-			}
-
-			client = telnet_connect(ce_serveur->addr, ce_serveur->port);
-			pthread_t thread;
-			pthread_create(&thread, NULL, reader_thread, client);
-			pthread_detach(thread);
-
-			if (!telnet_login(client, ce_serveur->utilisateur, ce_serveur->mdp)) {
-				printf("connection impossible\n");
-				exit(EXIT_FAILURE);
-			}
-
-		}
+		    proc_info_t proc = demander_processus();
+		    if (proc.pid > 0) {
+		        if (current_server_type == LOCAL) { 
+		                redemarrer_processus(proc.pid);
+		                proc.pid = 0;
+		        }
 		
-
-	}
+		        else if (current_server_type == REMOTE) {
+		            if (serveur->type == telnet ){
+		                reprise_processus_distant_telnet(client, proc.pid);
+		                proc.pid = 0;
+		            }           
+		            
+		            else if (serveur->type == ssh ){
+		                redemarrer_processus_distant_ssh(session, proc.pid)
+		                proc.pid = 0;
+		            }
+		        }
+		    }
+		}
+			
+		else if (ch == KEY_F(9)){
+			if (ce_serveur != NULL){
+				if (current_server_type == REMOTE)
+					ce_serveur = suivant(ce_serveur);
+				
+				if (ce_serveur == NULL) { 
+					ce_serveur = serveur;
+					current_server_type = LOCAL;
+				}
+				else {
+					current_server_type = REMOTE;
+				}
+	
+				client = telnet_connect(ce_serveur->addr, ce_serveur->port);
+				pthread_t thread;
+				pthread_create(&thread, NULL, reader_thread, client);
+				pthread_detach(thread);
+	
+				if (!telnet_login(client, ce_serveur->utilisateur, ce_serveur->mdp)) {
+					printf("connection impossible\n");
+					exit(EXIT_FAILURE);
+				}
+			}
+		}
 
         clear();
 
@@ -588,19 +643,19 @@ void run_tui(parameter_t *params) {
                  " PID    USER   ADRESSE SERVEUR   S    CPU%%    MEM%%   PPID   GID       NAME                          UPTIME");
         mvhline(1, 0, '-', COLS);
 
-	if (current_server_type == LOCAL){
-		last_pid = draw_process_table(start_pid);
-	}
-	else {
-		if (strcmp(ce_serveur->type, "telnet") == 0){
-			last_pid = draw_process_table_telnet(client, start_pid);
+		if (current_server_type == LOCAL){
+			last_pid = draw_process_table(start_pid);
 		}
-		else{
-		///////fonction ssh a implementer
-			printf(":(\n");
+		else {
+			if (strcmp(ce_serveur->type, "telnet") == 0){
+				last_pid = draw_process_table_telnet(client, start_pid);
+			}
+			else{
+			///////fonction ssh a implementer
+				printf(":(\n");
+			}
+	
 		}
-
-	}
 
         // Ligne de bas d'écran (rappel des touches principales)
         mvprintw(LINES - 1, 0,
