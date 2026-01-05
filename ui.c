@@ -15,6 +15,7 @@
 #include "ui.h"
 #include "process.h"
 #include "network.h"
+#include <pthread.h>
 
 // ====================== HELPER : DEMANDER UN PID ======================
 
@@ -230,7 +231,7 @@ static pid_t draw_process_table(pid_t start_pid) {
 			default:  color = 6; break;
 		}
 
-		serveurs *liste_serveurs = lirefichier(chemin_conf());
+	/*	serveurs *liste_serveurs = lirefichier(chemin_conf());
 		const char *adresse_affichee = "local";
 
 		if (liste_serveurs != NULL) {
@@ -240,12 +241,12 @@ static pid_t draw_process_table(pid_t start_pid) {
 				adresse_affichee = liste_serveurs->addr;
 			}
 		}
-
+*/
 		mvprintw(row, 0,
 				"%6d %-8.8s %-15.15s %1c %7.2f %7.2f %6d %6d %-30.30s %10.1f",
 				info.pid,
 				info.user,
-				adresse_affichee,
+				"                ",
 				info.state,
 				info.cpu_percent,
 				info.mem_percent,
@@ -415,16 +416,30 @@ void run_tui(parameter_t *params) {
     keypad(stdscr, TRUE);
     flushinp();
 
+    serveurs *serveur = NULL;
+    serveurs *ce_serveur = NULL;
+    telnet_client_t *client;
+
+    if (strcmp(params[REMOTE_CONF].parameter_value.str_param,"defaultConfigFile") == 0){
+	serveur = lirefichier(chemin_conf());
+	ce_serveur = serveur;
+    }
+
     int ch;
     pid_t f3start_pid = 1;//le start pid de la fenetre precedente
     pid_t start_pid = 1;
     pid_t last_pid = -1;
+
+    int indice_serveur = 0; //l'indice du serveur choisi. si c'est 0 alors c'est le local
 
     while (1) {
         ch = getch();
 
         // Quitter : q / Q / F10
         if (ch == 'q' || ch == 'Q' || ch == KEY_F(10)) {
+            if (serveur != NULL){
+		free_serveurs(serveur);
+	    }
             flushinp();
             break;
         }
@@ -499,6 +514,30 @@ void run_tui(parameter_t *params) {
                 proc.pid = 0;
 	        }
         }
+	else if (ch == KEY_F(9)){
+		for (int i = 1; i < indice_serveur; i++){
+			if (suivant(ce_serveur) == NULL){
+				indice_serveur = 0;
+				break;
+			}
+			ce_serveur = suivant(ce_serveur);
+			indice_serveur++;
+		}
+		if (indice_serveur == 0)
+			continue;
+		client = telnet_connect(ce_serveur->addr, ce_serveur->port);
+
+		pthread_t thread;
+		pthread_create(&thread, NULL, reader_thread, client);
+
+		char *output;
+		output = telnet_exec(client, ce_serveur->utilisateur);
+		output = telnet_exec(client, ce_serveur->mdp);
+		if ( output != "Login successful"){
+			printf("connection impossible : %s\n", output);
+			exit(EXIT_FAILURE);
+		}
+	}
 
         clear();
 
@@ -507,7 +546,13 @@ void run_tui(parameter_t *params) {
                  " PID    USER   ADRESSE SERVEUR   S    CPU%%    MEM%%   PPID   GID       NAME                          UPTIME");
         mvhline(1, 0, '-', COLS);
 
-        last_pid = draw_process_table(start_pid);
+	if (indice_serveur == 0){
+		last_pid = draw_process_table(start_pid);
+	}
+	else {
+		last_pid = draw_process_table_telnet(client, start_pid);
+
+	}
 
         // Ligne de bas d'écran (rappel des touches principales)
         mvprintw(LINES - 1, 0,

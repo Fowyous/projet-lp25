@@ -3,7 +3,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <arpa/inet.h>
 #include <sys/socket.h>
 
 /* =========================================================
@@ -105,11 +104,14 @@ static const telnet_telopt_t telnet_options[] = {
     { -1, 0, 0 }
 };
 */
+
+volatile int telnet_output_ready = 0;
+char telnet_last_output[4096];
+
 void telnet_event_handler(telnet_t *telnet, telnet_event_t *ev, void *user_data) {
     switch (ev->type) {
         case TELNET_EV_DATA:
-            fwrite(ev->data.buffer, 1, ev->data.size, stdout);
-            fflush(stdout);
+            strncat(telnet_last_output, ev->data.buffer, ev->data.size);
             break;
 
         case TELNET_EV_SEND:

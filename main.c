@@ -32,7 +32,7 @@ int main(int argc, char *argv[]) {
 		{.name="connection-type",.has_arg=1,.flag=0,.val='t'},
 		{.name="port",.has_arg=1,.flag=0,.val='P'},
  		{.name="login",.has_arg=1,.flag=0,.val='l'},
- 		{.name="remote-server",.has_arg=1,.flag=0,.val='s'},
+ 		{.name="remote-server",.has_arg=0,.flag=0,.val='s'},
 		{.name="username",.has_arg=1,.flag=0,.val='u'},
  		{.name="password",.has_arg=1,.flag=0,.val='p'},
  		{.name="all",.has_arg=1,.flag=0,.val='a'}, // faut utiliser avc -c et -s
@@ -54,7 +54,7 @@ int main(int argc, char *argv[]) {
 		{.parameter_type=ALL, .parameter_value.flag_param=false}
 	};
 	int nb_options = 0;
-	while((opt = getopt_long(argc, argv, "hdc:t:P:l:s:u:p:a", my_opts, 0)) != -1) {
+	while((opt = getopt_long(argc, argv, "hdc::t:P:l:s:u:p:a", my_opts, 0)) != -1) {
 		switch (opt) {
 			case 'h':
 				help(argv[0]);
@@ -65,9 +65,18 @@ int main(int argc, char *argv[]) {
 				nb_options +=1;
 				break;
 			case 'c'://remote config
+				 if (optind < argc && argv[optind] != NULL && argv[optind][0] != '-'){
 				printf("fichier config est %s\n", optarg);
 				strncpy(params[REMOTE_CONF].parameter_value.str_param, optarg, STR_MAX - 1);
 				nb_options +=1;
+				optind++;
+				 }
+				 else {
+
+					 strncpy(params[REMOTE_CONF].parameter_value.str_param, "defaultConfigFile", STR_MAX - 1);
+
+				 }
+				 nb_options += 1;
 				break;
 			case 't'://connection type
 				if (!strcasecmp(optarg,"SSH")) {

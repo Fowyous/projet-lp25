@@ -18,3 +18,4 @@ serveurs *creer_serveur(char *ligne);
 bool verif_permissions(const char *chemin); // retourve vrai si les permissions sont rw-------
 const char *chemin_conf(); // cherche le chemin de config dan3s le repertoire courant
 
+serveurs *suivant(serveurs *serv);

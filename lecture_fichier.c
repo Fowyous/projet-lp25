@@ -167,4 +167,10 @@ serveurs *lirefichier(const char *chemin){
 	return tete;
 }
 
+serveurs *suivant(serveurs *serv){
+	if (serv == NULL){
+		return serv;
+	}
+	return serv->next;
 
+}

@@ -3,6 +3,7 @@
 
 #include <libssh/libssh.h>
 #include <libtelnet.h>
+#include <arpa/inet.h>
 
 #include <stddef.h>
 #include <sys/types.h>
@@ -44,8 +45,8 @@ typedef struct {
     size_t buffer_len;
 } telnet_client_t;
 */
-char telnet_last_output[4096]; 
-volatile int telnet_output_ready = 0;
+extern char telnet_last_output[4096]; 
+extern volatile int telnet_output_ready;
 
 typedef struct {
     int sockfd;
