@@ -71,6 +71,13 @@ bool verif_permissions(const char *chemin){// retourve vrai si les permissions s
 	return bonne_permission;
 }
 
+
+
+
+
+
+
+/*
 serveurs *creer_serveur(char *ligne){
 	serveurs *nouvel_serveur = malloc(sizeof(serveurs));
 	if (nouvel_serveur == NULL){
@@ -101,9 +108,62 @@ serveurs *creer_serveur(char *ligne){
 
 	nouvel_serveur->next = NULL;
 	return nouvel_serveur;
-
-
 }
+*/
+
+serveurs *creer_serveur(char *ligne){
+    serveurs *nouvel_serveur = malloc(sizeof(serveurs));
+    if (!nouvel_serveur){
+        perror("malloc");
+        exit(EXIT_FAILURE);
+    }
+
+    char *token;
+
+    // nom_serveur
+    token = strtok(ligne, ":");
+    if (!token) goto erreur_format;
+    nouvel_serveur->nom_serveur = strdup(token);
+
+    // addr
+    token = strtok(NULL, ":");
+    if (!token) goto erreur_format;
+    strncpy(nouvel_serveur->addr, token, sizeof(nouvel_serveur->addr) - 1);
+    nouvel_serveur->addr[sizeof(nouvel_serveur->addr) - 1] = '\0';
+
+    // port
+    token = strtok(NULL, ":");
+    if (!token) goto erreur_format;
+    nouvel_serveur->port = (unsigned short)atoi(token);
+
+    // utilisateur
+    token = strtok(NULL, ":");
+    if (!token) goto erreur_format;
+    nouvel_serveur->utilisateur = strdup(token);
+
+    // mdp
+    token = strtok(NULL, ":");
+    if (!token) goto erreur_format;
+    nouvel_serveur->mdp = strdup(token);
+
+    // type
+    token = strtok(NULL, ":");
+    if (!token) goto erreur_format;
+    strncpy(nouvel_serveur->type, token, sizeof(nouvel_serveur->type) - 1);
+    nouvel_serveur->type[sizeof(nouvel_serveur->type) - 1] = '\0';
+
+    nouvel_serveur->next = NULL;
+    return nouvel_serveur;
+
+erreur_format:
+    printf("Ligne de config invalide, ignorée.\n");
+    free(nouvel_serveur);
+    return NULL;
+}
+
+
+
+
 
 void  free_serveurs( serveurs *tete){
 	serveurs *serveur = tete;
