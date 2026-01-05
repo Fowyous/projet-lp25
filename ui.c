@@ -124,6 +124,83 @@ static void show_help_window(void) {
 }
 
 
+static pid_t draw_process_table_ssh(ssh_session session, pid_t start_pid){
+	
+	int row = 2;
+	pid_t last_pid = -1;
+	char output[BUFFER];
+
+	const char *cmd = "ps -eo pid=,user=,ppid=,stat=,pcpu=,pmem=,comm= --sort pid";
+	network_ssh_exec(session, cmd, output, sizeof(output));
+	if(!output || strlen(output) < 5){
+		mvprintw(0, 0, "Impossible de récupérer la liste des processus");
+		return -1;
+	}
+
+	char *ligne = strtok(output, "\n");
+
+	while (ligne && row < LINES - 2){
+
+		proc_info_t info;
+		memset(&info, 0, sizeof(info));
+	
+		int p = sscanf(ligne, "%d %63s %d %c %lf %lf %255s",
+				&info.pid,
+				info.user,
+				&info.ppid,
+				&info.state,
+				&info.cpu_percent,
+				&info.mem_percent,
+				info.name
+			      );
+		if (p < 7){
+			ligne = strtok(NULL, "\n");
+			continue;
+		}
+
+		if (info.pid < start_pid){
+			ligne = strtok(NULL, "\n");
+			continue;
+		}
+
+		last_pid = info.pid;
+
+		// Sélection de la couleur selon l’état
+		int color = 6; // default
+
+		switch (info.state) {
+			case 'R': color = 1; break; // Running
+			case 'S': color = 2; break; // Sleeping
+			case 'D': color = 3; break; // Disk sleep
+			case 'Z': color = 4; break; // Zombie
+			case 'T': color = 5; break; // Stopped
+			default:  color = 6; break;
+		}
+
+		mvprintw(row, 0, "%6d %-8.8s %-15.15s %1c %7.2f %7.2f %6d %6d %-30.30s",
+				info.pid,
+				info.user,
+				"               ",
+				info.state,
+				info.cpu_percent,
+				info.mem_percent,
+				info.ppid,
+				0,
+				info.name
+			);
+		attroff(COLOR_PAIR(color));
+
+		row++;
+		ligne = strtok(NULL, "\n");
+	}
+
+	return last_pid;
+}
+
+
+
+
+
 static pid_t draw_process_table_telnet(telnet_client_t *client, pid_t start_pid){
 	int row = 2;
 	pid_t last_pid = -1;
@@ -421,10 +498,15 @@ void run_tui(parameter_t *params) {
     serveurs *serveur = NULL;
     serveurs *ce_serveur = NULL;
     telnet_client_t *client;
+    ssh_session session;
 
     if (strcmp(params[REMOTE_CONF].parameter_value.str_param,"defaultConfigFile") == 0){
 	serveur = lirefichier(chemin_conf());
 	ce_serveur = serveur;
+    }
+    else if(params[REMOTE_CONF].parameter_value.str_param[0] != '\0'){
+	serveur = lirefichier(params[REMOTE_CONF].parameter_value.str_param);	ce_serveur = serveur; 
+
     }
 
     else if (params[REMOTE_SERV].parameter_value.str_param[0] != '\0' ||
@@ -466,7 +548,7 @@ void run_tui(parameter_t *params) {
     }
 
     int ch;
-    pid_t f3start_pid = 1;//le start pid de la fenetre precedente
+    //pid_t f3start_pid = 1;//le start pid de la fenetre precedente
     pid_t start_pid = 1;
     pid_t last_pid = -1;
 
@@ -529,7 +611,7 @@ void run_tui(parameter_t *params) {
 		        }
 		
 		        else if (current_server_type == REMOTE) {
-		            if (serveur->type == "telnet" ){
+		            if (strcmp(serveur->type, "telnet") == 0 ){
 		                pause_processus_distant_telnet(client, proc.pid);
 		                proc.pid = 0;
 		            }           
@@ -552,7 +634,7 @@ void run_tui(parameter_t *params) {
 				}
 		
 				else if (current_server_type == REMOTE) {
-					if (serveur->type == "telnet" ){
+					if (strcmp(serveur->type, "telnet") ){
 						arret_processus_distant_telnet(client, proc.pid);
 						proc.pid = 0;
 					}           
@@ -576,7 +658,7 @@ void run_tui(parameter_t *params) {
 		        }
 		
 		        else if (current_server_type == REMOTE) {
-		            if (serveur->type == "telnet" ){
+		            if (strcmp(serveur->type, "telnet") == 0 ){
 		                reprise_processus_distant_telnet(client, proc.pid);
 		                proc.pid = 0;
 		            }           
@@ -599,7 +681,7 @@ void run_tui(parameter_t *params) {
 		        }
 		
 		        else if (current_server_type == REMOTE) {
-		            if (serveur->type == "telnet" ){
+		            if (strcmp(serveur->type, "telnet") == 0){
 		                reprise_processus_distant_telnet(client, proc.pid);
 		                proc.pid = 0;
 		            }           
@@ -624,15 +706,26 @@ void run_tui(parameter_t *params) {
 				else {
 					current_server_type = REMOTE;
 				}
+				if (strcmp(ce_serveur->type, "telnet") == 0){	
+					client = telnet_connect(ce_serveur->addr, ce_serveur->port);
+					pthread_t thread;
+					pthread_create(&thread, NULL, reader_thread, client);
+					pthread_detach(thread);
 	
-				client = telnet_connect(ce_serveur->addr, ce_serveur->port);
-				pthread_t thread;
-				pthread_create(&thread, NULL, reader_thread, client);
-				pthread_detach(thread);
-	
-				if (!telnet_login(client, ce_serveur->utilisateur, ce_serveur->mdp)) {
-					printf("connection impossible\n");
-					exit(EXIT_FAILURE);
+					if (!telnet_login(client, ce_serveur->utilisateur, ce_serveur->mdp)) {
+						printf("connection impossible\n");
+						exit(EXIT_FAILURE);
+					}
+				}
+				else{//ssh
+			
+				
+					if (network_ssh_connect(ce_serveur->addr, ce_serveur->port, ce_serveur->utilisateur, ce_serveur->mdp) == NULL){
+						
+						printf("connection impossible ssh\n");
+						exit(EXIT_FAILURE);
+					}
+
 				}
 			}
 		}
@@ -652,8 +745,7 @@ void run_tui(parameter_t *params) {
 				last_pid = draw_process_table_telnet(client, start_pid);
 			}
 			else{
-			///////fonction ssh a implementer
-				printf(":(\n");
+				last_pid = draw_process_table_ssh(session, start_pid);
 			}
 	
 		}

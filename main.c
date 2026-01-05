@@ -65,11 +65,10 @@ int main(int argc, char *argv[]) {
 				nb_options +=1;
 				break;
 			case 'c'://remote config
-				 if (optind < argc && argv[optind] != NULL && argv[optind][0] != '-'){
-				printf("fichier config est %s\n", optarg);
+				 if (optarg != NULL){
+			//	printf("fichier config est %s\n", optarg);
 				strncpy(params[REMOTE_CONF].parameter_value.str_param, optarg, STR_MAX - 1);
-				nb_options +=1;
-				optind++;
+				//optind++;
 				 }
 				 else {
 
@@ -104,7 +103,7 @@ int main(int argc, char *argv[]) {
 				nb_options += 1;
         			break;
 		    case 's': //remote-server
-			      	if (optarg == NULL || optind < argc && argv[optind][0] == '-') {
+			      	if (optarg == NULL || (optind < argc && argv[optind][0] == '-')) {
                  		printf("Erreur : L'option -s (ou --remote-server) nécessite un argument.\n");
                     		help(argv[0]);
                     		exit(EXIT_FAILURE);
