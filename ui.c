@@ -534,10 +534,10 @@ void run_tui(parameter_t *params) {
 		                proc.pid = 0;
 		            }           
 		            
-		            else if (serveur->type == "ssh" ){
-		                pause_processus_distant_ssh(session, proc.pid);
-		                proc.pid = 0;
-		            }
+		            //else if (serveur->type == "ssh" ){
+		               // pause_processus_distant_ssh(session, proc.pid);
+		                //proc.pid = 0;
+		            //}
 		        }
 		    }
 		}
@@ -557,10 +557,10 @@ void run_tui(parameter_t *params) {
 						proc.pid = 0;
 					}           
 					
-					else if (serveur->type == "ssh" ){
-						arret_processus_distant_ssh(session, pid_t pid)
-						proc.pid = 0;
-					}
+					//else if (serveur->type == "ssh" ){
+						//arret_processus_distant_ssh(session, proc.pid)
+						//proc.pid = 0;
+					//}
 				}
 			}
 		}
@@ -581,10 +581,10 @@ void run_tui(parameter_t *params) {
 		                proc.pid = 0;
 		            }           
 		            
-		            else if (serveur->type == "ssh" ){
-		                reprise_processus_distant_ssh(session, proc.pid);
-		                proc.pid = 0;
-		            }
+		            //else if (serveur->type == "ssh" ){
+		                //reprise_processus_distant_ssh(session, proc.pid);
+		                //proc.pid = 0;
+		            //}
 		        }
 		    }
 		}
@@ -604,10 +604,10 @@ void run_tui(parameter_t *params) {
 		                proc.pid = 0;
 		            }           
 		            
-		            else if (serveur->type == "ssh" ){
-		                redemarrer_processus_distant_ssh(session, proc.pid);
-		                proc.pid = 0;
-		            }
+		            //else if (serveur->type == "ssh" ){
+		                //redemarrer_processus_distant_ssh(session, proc.pid);
+		                //proc.pid = 0;
+		            //}
 		        }
 		    }
 		}
