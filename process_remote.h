@@ -4,6 +4,7 @@
 #include <sys/types.h>
 #include <libssh/libssh.h>
 #include "network.h"
+#include <signal.h>
 
 /* ================= SSH ================= */
 
