@@ -100,7 +100,7 @@ int main(int argc, char *argv[]) {
 				nb_options += 1;
 				break;
 			case 'l': //login
-				params[LOGIN].parameter_value.int_param = atoi(optarg);
+				strncpy(params[LOGIN].parameter_value.str_param, optarg, STR_MAX - 1);
 				nb_options += 1;
         			break;
 		    case 's': //remote-server
@@ -127,6 +127,13 @@ int main(int argc, char *argv[]) {
 				nb_options += 1;
 				break;
 		}
+	}
+
+	if (params[LOGIN].parameter_value.str_param[0] != '\0' && params[PASSWORD].parameter_value.str_param[0] == '\0') {
+		printf("Entrez le mot de passe pour l'utilisateur %s : ", params[LOGIN].parameter_value.str_param);
+		fgets(params[PASSWORD].parameter_value.str_param, STR_MAX, stdin);
+		params[PASSWORD].parameter_value.str_param[strcspn(params[PASSWORD].parameter_value.str_param, "\n")] = 0;
+
 	}
 
 	if (params[REMOTE_SERV].parameter_value.str_param[0] != '\0' && !params[ALL].parameter_value.flag_param){

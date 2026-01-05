@@ -426,7 +426,21 @@ void run_tui(parameter_t *params) {
 	ce_serveur = serveur;
     }
 
-    else if (params[REMOTE_SERV].parameter_value.str_param[0] != '\0'){
+    else if (params[REMOTE_SERV].parameter_value.str_param[0] != '\0' ||
+		    params[LOGIN].parameter_value.str_param[0] != '\0'){
+
+	    char *addr;
+	    char *utilisateur = params[USERNAME].parameter_value.str_param;
+	    char *login = params[LOGIN].parameter_value.str_param;
+
+	    if ( login[0] != '\0'){
+		utilisateur = strtok(login, "@");
+		addr = strtok(NULL, "@");
+	    }
+	    else {
+		addr = params[REMOTE_SERV].parameter_value.str_param; 
+	    }
+
 	char val[256];
 
 	if (params[CONNECTION_TYPE].parameter_value.connection_param == UNDEFINED){
@@ -441,9 +455,9 @@ void run_tui(parameter_t *params) {
 		port = 22;
 	}
 	sprintf(val, "%s:%s:%d:%s:%s:%s", " ", 
-			params[REMOTE_SERV].parameter_value.str_param,
+			addr,
 			port,
-			params[USERNAME].parameter_value.str_param,
+			utilisateur,
 			params[PASSWORD].parameter_value.str_param,
 			protocol);
 	serveur = creer_serveur(val);
