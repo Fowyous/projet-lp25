@@ -529,12 +529,12 @@ void run_tui(parameter_t *params) {
 		        }
 		
 		        else if (current_server_type == REMOTE) {
-		            if (serveur->type == telnet ){
+		            if (serveur->type == "telnet" ){
 		                pause_processus_distant_telnet(client, proc.pid);
 		                proc.pid = 0;
 		            }           
 		            
-		            else if (serveur->type == ssh ){
+		            else if (serveur->type == "ssh" ){
 		                pause_processus_distant_ssh(session, proc.pid);
 		                proc.pid = 0;
 		            }
@@ -552,13 +552,13 @@ void run_tui(parameter_t *params) {
 				}
 		
 				else if (current_server_type == REMOTE) {
-					if (serveur->type == telnet ){
+					if (serveur->type == "telnet" ){
 						arret_processus_distant_telnet(client, proc.pid);
 						proc.pid = 0;
 					}           
 					
-					else if (serveur->type == ssh ){
-						arret_processus_distant_ssh(ssh_session session, pid_t pid)
+					else if (serveur->type == "ssh" ){
+						arret_processus_distant_ssh(session, pid_t pid)
 						proc.pid = 0;
 					}
 				}
@@ -576,12 +576,12 @@ void run_tui(parameter_t *params) {
 		        }
 		
 		        else if (current_server_type == REMOTE) {
-		            if (serveur->type == telnet ){
+		            if (serveur->type == "telnet" ){
 		                reprise_processus_distant_telnet(client, proc.pid);
 		                proc.pid = 0;
 		            }           
 		            
-		            else if (serveur->type == ssh ){
+		            else if (serveur->type == "ssh" ){
 		                reprise_processus_distant_ssh(session, proc.pid);
 		                proc.pid = 0;
 		            }
@@ -599,12 +599,12 @@ void run_tui(parameter_t *params) {
 		        }
 		
 		        else if (current_server_type == REMOTE) {
-		            if (serveur->type == telnet ){
+		            if (serveur->type == "telnet" ){
 		                reprise_processus_distant_telnet(client, proc.pid);
 		                proc.pid = 0;
 		            }           
 		            
-		            else if (serveur->type == ssh ){
+		            else if (serveur->type == "ssh" ){
 		                redemarrer_processus_distant_ssh(session, proc.pid);
 		                proc.pid = 0;
 		            }
