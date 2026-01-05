@@ -604,7 +604,7 @@ void run_tui(parameter_t *params) {
 		            }           
 		            
 		            else if (serveur->type == ssh ){
-		                redemarrer_processus_distant_ssh(session, proc.pid)
+		                redemarrer_processus_distant_ssh(session, proc.pid);
 		                proc.pid = 0;
 		            }
 		        }
