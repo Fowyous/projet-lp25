@@ -14,7 +14,7 @@ OBJ_DIR = obj
 TARGET = $(BIN_DIR)/main
 
 # Source files
-SRCS = main.c process.c ui.c lecture_fichier.c network.c
+SRCS = main.c process.c ui.c lecture_fichier.c network.c process_remote.c
 # Object files
 OBJS = $(patsubst $(SRC_DIR)/%.c, $(OBJ_DIR)/%.o, $(SRCS))
 
