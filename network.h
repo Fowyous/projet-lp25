@@ -53,6 +53,9 @@ typedef struct {
     telnet_t *telnet;
 } telnet_client_t;
 
+int telnet_login(telnet_client_t *client, const char *user, const char *pass);
+
+char *telnet_wait_for(telnet_client_t *client, const char *expected, int timeout_ms);
 void telnet_event_handler(telnet_t *telnet, telnet_event_t *ev, void *user_data);
 void *reader_thread(void *arg);
 

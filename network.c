@@ -10,107 +10,146 @@
  * ========================================================= */
 
 ssh_session network_ssh_connect(
-    const char *host,
-    int port,
-    const char *user,
-    const char *password
-) {
-    ssh_session session = ssh_new();
-    if (!session)
-        return NULL;
+		const char *host,
+		int port,
+		const char *user,
+		const char *password
+		) {
+	ssh_session session = ssh_new();
+	if (!session)
+		return NULL;
 
-    ssh_options_set(session, SSH_OPTIONS_HOST, host);
-    ssh_options_set(session, SSH_OPTIONS_PORT, &port);
-    ssh_options_set(session, SSH_OPTIONS_USER, user);
+	ssh_options_set(session, SSH_OPTIONS_HOST, host);
+	ssh_options_set(session, SSH_OPTIONS_PORT, &port);
+	ssh_options_set(session, SSH_OPTIONS_USER, user);
 
-    if (ssh_connect(session) != SSH_OK) {
-        fprintf(stderr, "SSH connect error: %s\n",
-                ssh_get_error(session));
-        ssh_free(session);
-        return NULL;
-    }
+	if (ssh_connect(session) != SSH_OK) {
+		fprintf(stderr, "SSH connect error: %s\n",
+				ssh_get_error(session));
+		ssh_free(session);
+		return NULL;
+	}
 
-    if (ssh_userauth_password(session, NULL, password)
-        != SSH_AUTH_SUCCESS) {
-        fprintf(stderr, "SSH auth error: %s\n",
-                ssh_get_error(session));
-        ssh_disconnect(session);
-        ssh_free(session);
-        return NULL;
-    }
+	if (ssh_userauth_password(session, NULL, password)
+			!= SSH_AUTH_SUCCESS) {
+		fprintf(stderr, "SSH auth error: %s\n",
+				ssh_get_error(session));
+		ssh_disconnect(session);
+		ssh_free(session);
+		return NULL;
+	}
 
-    return session;
+	return session;
 }
 
 int network_ssh_exec(
-    ssh_session session,
-    const char *command,
-    char *output,
-    size_t output_size
-) {
-    if (!session || !command || !output)
-        return -1;
+		ssh_session session,
+		const char *command,
+		char *output,
+		size_t output_size
+		) {
+	if (!session || !command || !output)
+		return -1;
 
-    ssh_channel channel = ssh_channel_new(session);
-    if (!channel)
-        return -1;
+	ssh_channel channel = ssh_channel_new(session);
+	if (!channel)
+		return -1;
 
-    if (ssh_channel_open_session(channel) != SSH_OK)
-        goto error;
+	if (ssh_channel_open_session(channel) != SSH_OK)
+		goto error;
 
-    if (ssh_channel_request_exec(channel, command) != SSH_OK)
-        goto error;
+	if (ssh_channel_request_exec(channel, command) != SSH_OK)
+		goto error;
 
-    int total = 0;
-    int nbytes;
+	int total = 0;
+	int nbytes;
 
-    while ((nbytes = ssh_channel_read(
-                channel,
-                output + total,
-                output_size - total - 1,
-                0)) > 0) {
-        total += nbytes;
-    }
+	while ((nbytes = ssh_channel_read(
+					channel,
+					output + total,
+					output_size - total - 1,
+					0)) > 0) {
+		total += nbytes;
+	}
 
-    output[total] = '\0';
+	output[total] = '\0';
 
-    ssh_channel_send_eof(channel);
-    ssh_channel_close(channel);
-    ssh_channel_free(channel);
+	ssh_channel_send_eof(channel);
+	ssh_channel_close(channel);
+	ssh_channel_free(channel);
 
-    return total;
+	return total;
 
 error:
-    ssh_channel_close(channel);
-    ssh_channel_free(channel);
-    return -1;
+	ssh_channel_close(channel);
+	ssh_channel_free(channel);
+	return -1;
 }
 
 void network_ssh_disconnect(ssh_session session) {
-    if (!session)
-        return;
+	if (!session)
+		return;
 
-    ssh_disconnect(session);
-    ssh_free(session);
+	ssh_disconnect(session);
+	ssh_free(session);
 }
 
 /* =========================================================
  * TELNET
  * ========================================================= */
 /*
-static const telnet_telopt_t telnet_options[] = {
-    { TELNET_TELOPT_ECHO, TELNET_WILL, TELNET_DO },
-    { TELNET_TELOPT_SGA,  TELNET_WILL, TELNET_DO },
-    { -1, 0, 0 }
-};
-*/
+   static const telnet_telopt_t telnet_options[] = {
+   { TELNET_TELOPT_ECHO, TELNET_WILL, TELNET_DO },
+   { TELNET_TELOPT_SGA,  TELNET_WILL, TELNET_DO },
+   { -1, 0, 0 }
+   };
+   */
 
 volatile int telnet_output_ready = 0;
 char telnet_last_output[4096];
 
+int telnet_login(telnet_client_t *client, const char *user, const char *pass) {
+
+    // Wait for login prompt
+    telnet_wait_for(client, "Username: ", 3000);
+    telnet_send(client->telnet, user, strlen(user));
+    //telnet_send(client->telnet, "\n", 1);
+
+    // Wait for password prompt
+    telnet_wait_for(client, "Password: ", 3000);
+    telnet_send(client->telnet, pass, strlen(pass));
+    telnet_send(client->telnet, "\n", 1);
+
+    // Wait for success message or shell prompt
+    char *out = telnet_wait_for(client, "Login", 3000);
+
+    if (strstr(out, "Login successful\n"))
+        return 1;
+
+    return 0;
+}
+
+char *telnet_wait_for(telnet_client_t *client, const char *expected, int timeout_ms) {
+    memset(telnet_last_output, 0, sizeof(telnet_last_output));
+
+    int waited = 0;
+    while (waited < timeout_ms) {
+        usleep(50000); //50ms
+        waited += 50;
+
+        if (strstr(telnet_last_output, expected))
+            return telnet_last_output;
+//	printf("telnet_last_output : %s\n", telnet_last_output);
+    }
+
+    return telnet_last_output;
+}
+
 void telnet_event_handler(telnet_t *telnet, telnet_event_t *ev, void *user_data) {
+
     switch (ev->type) {
         case TELNET_EV_DATA:
+
             strncat(telnet_last_output, ev->data.buffer, ev->data.size);
             break;
 
@@ -136,6 +175,11 @@ void *reader_thread(void *arg) {
             printf("\nDisconnected from server.\n");
             exit(0);
         }
+/*
+	 printf("RAW: "); 
+	 for (int i = 0; i < n; i++)
+		 printf("%02X ", (unsigned char)buffer[i]); 
+	 printf("\n");*/
         telnet_recv(client->telnet, buffer, n);
     }
 }

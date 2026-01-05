@@ -144,6 +144,7 @@ static pid_t draw_process_table_telnet(telnet_client_t *client, pid_t start_pid)
 		int p = sscanf(ligne, "%d %63s %d %c %lf %lf %255s",
 				&info.pid,
 				info.user,
+				&info.ppid,
 				&info.state,
 				&info.cpu_percent,
 				&info.mem_percent,
@@ -430,7 +431,7 @@ void run_tui(parameter_t *params) {
     pid_t start_pid = 1;
     pid_t last_pid = -1;
 
-    int indice_serveur = 0; //l'indice du serveur choisi. si c'est 0 alors c'est le local
+    ServerType current_server_type = LOCAL;
 
     while (1) {
         ch = getch();
@@ -515,28 +516,31 @@ void run_tui(parameter_t *params) {
 	        }
         }
 	else if (ch == KEY_F(9)){
-		for (int i = 1; i < indice_serveur; i++){
-			if (suivant(ce_serveur) == NULL){
-				indice_serveur = 0;
-				break;
+		if (ce_serveur != NULL){
+			if (current_server_type == REMOTE)
+				ce_serveur = suivant(ce_serveur);
+			
+			if (ce_serveur == NULL) { 
+				ce_serveur = serveur;
+				current_server_type = LOCAL;
 			}
-			ce_serveur = suivant(ce_serveur);
-			indice_serveur++;
-		}
-		if (indice_serveur == 0)
-			continue;
-		client = telnet_connect(ce_serveur->addr, ce_serveur->port);
+			else {
+				current_server_type = REMOTE;
+			}
 
-		pthread_t thread;
-		pthread_create(&thread, NULL, reader_thread, client);
+			client = telnet_connect(ce_serveur->addr, ce_serveur->port);
+			pthread_t thread;
+			pthread_create(&thread, NULL, reader_thread, client);
+			pthread_detach(thread);
 
-		char *output;
-		output = telnet_exec(client, ce_serveur->utilisateur);
-		output = telnet_exec(client, ce_serveur->mdp);
-		if ( output != "Login successful"){
-			printf("connection impossible : %s\n", output);
-			exit(EXIT_FAILURE);
+			if (!telnet_login(client, ce_serveur->utilisateur, ce_serveur->mdp)) {
+				printf("connection impossible\n");
+				exit(EXIT_FAILURE);
+			}
+
 		}
+		
+
 	}
 
         clear();
@@ -546,7 +550,7 @@ void run_tui(parameter_t *params) {
                  " PID    USER   ADRESSE SERVEUR   S    CPU%%    MEM%%   PPID   GID       NAME                          UPTIME");
         mvhline(1, 0, '-', COLS);
 
-	if (indice_serveur == 0){
+	if (current_server_type == LOCAL){
 		last_pid = draw_process_table(start_pid);
 	}
 	else {

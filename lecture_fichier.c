@@ -107,7 +107,7 @@ serveurs *creer_serveur(char *ligne){
 
 void  free_serveurs( serveurs *tete){
 	serveurs *serveur = tete;
-	while (tete != NULL){
+	while (serveur != NULL){
 		serveurs *next = serveur->next;
 		free(serveur->nom_serveur);
 		free(serveur->utilisateur);
