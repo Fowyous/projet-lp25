@@ -1,7 +1,7 @@
 #include <stdbool.h>
 typedef struct serveurs{
 	char *nom_serveur;
-	char addr[15];
+	char addr[16];
 	unsigned short port;
 	char *utilisateur;
 	char *mdp;
